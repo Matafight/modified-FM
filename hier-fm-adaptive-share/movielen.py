@@ -1,7 +1,11 @@
+#_*_ coding:utf-8_*_
 import numpy as np
 from sklearn.feature_extraction import DictVectorizer
 import my_pyfmlib as pylibfm
 
+
+train_data_name = 'u1.base'
+test_data_name = 'u1.test'
 def loadData(filename):
     data=[]
     y = []
@@ -22,11 +26,13 @@ v = DictVectorizer()
 x_train=v.fit_transform(train_data)
 x_test = v.fit_transform(test_data)
 
-fm = pylibfm.FM(num_factors = 10,num_iter=100,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal")
+fm = pylibfm.FM(num_factors = 10,num_iter=10,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=train_data_name)
 
 fm.fit(x_train,train_label)
 pre_label = fm.predict(x_test)
 
 diff = 0.5*np.sum((pre_label-test_label)**2)/test_label.size
+fh = open('./results/'+train_data_name,'a')
+fh.write("--test--RMSE---"+str(diff))
 print(diff)
 

@@ -63,7 +63,7 @@ class FM:
                  task='classification',
                  verbose=True,
                  shuffle_training=True,
-                 seed = 28):
+                 seed = 28,dataname='unknown'):
 
         self.num_factors = num_factors
         self.num_iter = num_iter
@@ -96,7 +96,8 @@ class FM:
         self.sum_f = 0.0
         self.sum_f_dash_f = 0.0
         self.verbose = verbose
-
+        
+        self.dataname = dataname
     def _validate_params(self):
         """Validate input params. """
         if not isinstance(self.shuffle_training, bool):
@@ -205,7 +206,7 @@ class FM:
                                shuffle_training,
                                task,
                                self.seed,
-                               verbose)
+                               verbose,self.dataname)
 
         return self.fm_fast.fit(X_train_dataset, validation_dataset)
 

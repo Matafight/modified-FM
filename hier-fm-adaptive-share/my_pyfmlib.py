@@ -22,8 +22,8 @@ class FM:
                  task = 'regression',
                  verbose = True,
                  shuffle_training= True,
-                 seed = 28
-                 ):
+                 seed = 28,
+                 dataname = "unknown"):
         self.num_factors=num_factors
         self.num_iter = num_iter
         self.sum = np.zeros(self.num_factors)
@@ -48,6 +48,7 @@ class FM:
         self.reg0 = 0.01
         self.reg1 = 0.01
         self.reg2 = 0.01
+        self.dataname = dataname
         #local parameters in the lambda update
         #omit here
 
@@ -120,7 +121,7 @@ class FM:
                                    shuffle_training,
                                    task,
                                    self.seed,
-                                   verbose)
+                                   verbose,self.dataname)
         return self.fm_fast.fit(X_train_dataset,validation_dataset)
             
         #if self.verbose == True:

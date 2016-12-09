@@ -51,7 +51,6 @@ cdef class FM_fast(object):
     cdef int n_iter
     cdef int k0
     cdef int k1
-
     #why use the different DOUBLE type from w0
     cdef DOUBLE t
     cdef DOUBLE t0
@@ -65,6 +64,7 @@ cdef class FM_fast(object):
     cdef int learning_rate_schedule
     cdef double learning_rate
 
+    cdef str dataname
     cdef int shuffle_training
     cdef int seed
     cdef int verbose
@@ -102,7 +102,7 @@ cdef class FM_fast(object):
                   int shuffle_training,
                   int task,
                   int seed,
-                  int verbose):
+                  int verbose,dataname):
         self.w0 = w0
         self.w = w
         self.v = v
@@ -129,6 +129,7 @@ cdef class FM_fast(object):
         self.reg_2 = 0.0
         self.sumloss=0.0
         self.count = 0
+        self.dataname = dataname
         
         self.grad_w = np.zeros(self.num_attributes)
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
@@ -398,7 +399,7 @@ cdef class FM_fast(object):
         cdef INTEGER * x_ind_ptr = NULL
         cdef DOUBLE * validation_x_data_ptr = NULL
         cdef INTEGER * validation_x_ind_ptr =NULL
-
+        filename = self.dataname
         #helper variables
         cdef int xnnz
         cdef DOUBLE y = 0.0
@@ -410,9 +411,13 @@ cdef class FM_fast(object):
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE validation_sample_weight=1.0
 
+        filehandler = open("./results/"+filename,'w')
         for epoch in range(self.n_iter):
             if self.verbose >0 :
-                print("--Epoch %d" %(epoch + 1))
+                strtemp = "--Epoch  "+str(epoch+1)+'\n'
+                print(strtemp)
+                filehandler.write(strtemp)
+                #print("--Epoch %d" %(epoch + 1))
             self.count = 0
             self.sumloss = 0
 
@@ -429,7 +434,12 @@ cdef class FM_fast(object):
                                               & validation_sample_weight)
                     self._sgd_lambda_step(validation_x_data_ptr, validation_x_ind_ptr, validation_xnnz, validation_y)
             if self.verbose > 0:
-                print ("Training %s:%.5f"%("MSE",(self.sumloss/self.count)))
+               
+                strtemp = "Training MSE "+str(self.sumloss/self.count)+"\n"
+                print(strtemp)
+                filehandler.write(strtemp)
+                #print ("Training %s:%.5f"%("MSE",(self.sumloss/self.count)))
+        filehandler.close()
 
 
                 

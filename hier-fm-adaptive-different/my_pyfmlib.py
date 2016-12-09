@@ -23,9 +23,7 @@ class FM:
                  verbose = True,
                  shuffle_training= True,
                  seed = 28,
-                 dataname = "unknown",
-                 reg_1 = 0.01,
-                 reg_2 = 0.01):
+                 dataname = "unknown"):
         self.num_factors=num_factors
         self.num_iter = num_iter
         self.sum = np.zeros(self.num_factors)
@@ -47,12 +45,13 @@ class FM:
         self.learning_rate = initial_learning_rate
         self.t0 = t0
         #regularization paramter ,start with no regularization
-        self.reg_0 = 0.01
-        self.reg_1 = reg_1
-        self.reg_2 = reg_2
+        self.reg0 = 0.01
+        self.reg1 = 0.01
+        self.reg2 = 0.01
+        self.dataname = dataname
         #local parameters in the lambda update
         #omit here
-        self.dataname = dataname
+
     def _validate_params(self):
         if not isinstance(self.shuffle_training, bool):
             raise ValueError("shuffle must be either true or false")
@@ -90,8 +89,8 @@ class FM:
 
             #use sklearn to create a validation dataset for lambda updates
         if self.verbose == True:
-            print("creating validation dataset of %.2f of training"%self.validation_size)
-
+            print("creating validation dataset of %.2f of training ")
+           
         X_train,validation,train_labels,validation_labels = cross_validation.train_test_split(X,y, test_size = self.validation_size)
         self.num_attribute = X_train.shape[1]
 
@@ -122,12 +121,12 @@ class FM:
                                    shuffle_training,
                                    task,
                                    self.seed,
-                                   verbose,
-                                   self.dataname,
-                                   self.reg_1,
-                                   self.reg_2)
+                                   verbose,self.dataname)
         return self.fm_fast.fit(X_train_dataset,validation_dataset)
-
+            
+        #if self.verbose == True:
+         #       print("--Epoch %d"%(epoch + 1))
+         #      print("Train MSE: %.5f"%(self.sumloss/self.count))
     def predict(self,X):
         sparse_X = _make_dataset(X,np.ones(X.shape[0]))
         return self.fm_fast._predict(sparse_X)

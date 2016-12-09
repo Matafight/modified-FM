@@ -411,7 +411,7 @@ cdef class FM_fast(object):
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE validation_sample_weight=1.0
 
-        filehandler = open('./results/'+filename,'w')
+        filehandler = open("./results/"+filename,'w')
         for epoch in range(self.n_iter):
             if self.verbose >0 :
                 strtemp = "--Epoch  "+str(epoch+1)+'\n'

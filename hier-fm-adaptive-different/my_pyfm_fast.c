@@ -6446,14 +6446,14 @@ static PyObject *__pyx_pf_12my_pyfm_fast_7FM_fast_4fit(struct __pyx_obj_12my_pyf
  *         cdef DOUBLE sample_weight = 1.0
  *         cdef DOUBLE validation_sample_weight=1.0             # <<<<<<<<<<<<<<
  * 
- *         filehandler = open('./results/'+filename,'w')
+ *         filehandler = open("./results/"+filename,'w')
  */
   __pyx_v_validation_sample_weight = 1.0;
 
   /* "my_pyfm_fast.pyx":414
  *         cdef DOUBLE validation_sample_weight=1.0
  * 
- *         filehandler = open('./results/'+filename,'w')             # <<<<<<<<<<<<<<
+ *         filehandler = open("./results/"+filename,'w')             # <<<<<<<<<<<<<<
  *         for epoch in range(self.n_iter):
  *             if self.verbose >0 :
  */
@@ -6475,7 +6475,7 @@ static PyObject *__pyx_pf_12my_pyfm_fast_7FM_fast_4fit(struct __pyx_obj_12my_pyf
 
   /* "my_pyfm_fast.pyx":415
  * 
- *         filehandler = open('./results/'+filename,'w')
+ *         filehandler = open("./results/"+filename,'w')
  *         for epoch in range(self.n_iter):             # <<<<<<<<<<<<<<
  *             if self.verbose >0 :
  *                 strtemp = "--Epoch  "+str(epoch+1)+'\n'
@@ -6485,7 +6485,7 @@ static PyObject *__pyx_pf_12my_pyfm_fast_7FM_fast_4fit(struct __pyx_obj_12my_pyf
     __pyx_v_epoch = __pyx_t_5;
 
     /* "my_pyfm_fast.pyx":416
- *         filehandler = open('./results/'+filename,'w')
+ *         filehandler = open("./results/"+filename,'w')
  *         for epoch in range(self.n_iter):
  *             if self.verbose >0 :             # <<<<<<<<<<<<<<
  *                 strtemp = "--Epoch  "+str(epoch+1)+'\n'
@@ -6566,7 +6566,7 @@ static PyObject *__pyx_pf_12my_pyfm_fast_7FM_fast_4fit(struct __pyx_obj_12my_pyf
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
       /* "my_pyfm_fast.pyx":416
- *         filehandler = open('./results/'+filename,'w')
+ *         filehandler = open("./results/"+filename,'w')
  *         for epoch in range(self.n_iter):
  *             if self.verbose >0 :             # <<<<<<<<<<<<<<
  *                 strtemp = "--Epoch  "+str(epoch+1)+'\n'

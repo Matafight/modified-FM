@@ -15,7 +15,7 @@ ctypedef np.int32_t INTEGER
 # MODEL constants
 
 #control learning_rate
-DEF OPTIMAL = 0 
+DEF OPTIMAL = 0
 DEF INVERSE_SCALING = 1
 
 cdef class FM_fast(object):
@@ -29,8 +29,8 @@ cdef class FM_fast(object):
     k0 : int
     k1 : int
     w0 : double
-    t : double  
-    t0 : double 
+    t : double
+    t0 : double
     #what's this used for?
     l : double
     power_t :double
@@ -75,7 +75,7 @@ cdef class FM_fast(object):
 
     cdef np.ndarray grad_w
     cdef np.ndarray grad_v
-    
+    cdef str dataname
     cdef DOUBLE sumloss
     cdef int count # what for?
 
@@ -98,7 +98,10 @@ cdef class FM_fast(object):
                   int shuffle_training,
                   int task,
                   int seed,
-                  int verbose):
+                  int verbose,
+                  dataname,
+                  double reg_1,
+                  double reg_2):
         self.w0 = w0
         self.w = w
         self.v = v
@@ -121,14 +124,14 @@ cdef class FM_fast(object):
         self.seed = seed
         self.verbose = verbose
         self.reg_0 = 0.0
-        self.reg_1 = 0.0
-        self.reg_2 = 0.0
+        self.reg_1 = reg_1
+        self.reg_2 = reg_2
         self.sumloss=0.0
         self.count = 0
-        
+        self.dataname = dataname
         self.grad_w = np.zeros(self.num_attributes)
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
-    
+
     cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz):
         #helper variable
         cdef DOUBLE result = 0.0
@@ -177,23 +180,23 @@ cdef class FM_fast(object):
         cdef DOUBLE p = 0.0
 
         cdef np.ndarray[DOUBLE, ndim = 1,mode='c'] return_preds = np.zeros(n_samples)
-        
+
         for i in range(n_samples):
             dataset.next(&x_data_ptr,&x_ind_ptr,&xnnz,&y_placeholder,&sample_weight)
             p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
-            
+
             return_preds[i] = p
         return return_preds
 
     cdef _sgd_theta_step(self,DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz,DOUBLE y):
         cdef DOUBLE mult = 0.0
-        cdef DOUBLE p 
+        cdef DOUBLE p
         cdef int feature
         cdef unsigned int i=0
         cdef unsigned int f=0
         cdef DOUBLE d
         cdef DOUBLE grad_0
-        
+
         cdef DOUBLE w0 = self.w0
         cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
         cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] v = self.v
@@ -248,7 +251,7 @@ cdef class FM_fast(object):
         self.grad_v = grad_v
         self.t +=1
         self.count +=1
-                
+
 
     def fit(self, CSRDataset dataset, CSRDataset validation_dataset):
         cdef Py_ssize_t n_samples = dataset.n_samples
@@ -269,9 +272,13 @@ cdef class FM_fast(object):
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE validation_sample_weight=1.0
 
+        fh = open('./results/'+self.dataname,'w')
         for epoch in range(self.n_iter):
             if self.verbose >0 :
-                print("--Epoch %d" %(epoch + 1))
+                strtemp = "--Epoch--"+str(epoch+1)+"\n"
+                print(strtemp)
+                fh.write(strtemp)
+                #print("--Epoch %d" %(epoch + 1))
             self.count = 0
             self.sumloss = 0
 
@@ -283,23 +290,27 @@ cdef class FM_fast(object):
                 self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
 
                 if(epoch > 0):
-                    # lambda step 
+                    # lambda step
                     pass
             if self.verbose > 0:
-                print ("Training %s:%.5f"%("MSE",(self.sumloss/self.count)))
+                strtemp = "Training MSE--"+str(self.sumloss/self.count)+"\n"
+                print(strtemp)
+                fh.write(strtemp)
+                #print ("Training %s:%.5f"%("MSE",(self.sumloss/self.count)))
+        fh.close()
 
 
-                
+
 
 cdef _squareq(np.ndarray a, INTEGER b):
-    
+
     cdef DOUBLE ret = 0.0
     for i in range(b):
         ret += a[i]**2
     return ret
 
 
-    
+
 cdef _squared_loss(DOUBLE  p,DOUBLE y):
     return 0.5*(p-y)*(p-y)
 
@@ -374,7 +385,7 @@ cdef class CSRDataset:
                    int *nnz, DOUBLE *y, DOUBLE *sample_weight):
         #这个next 函数是用来干嘛的?
         #就是让下一个数据 指向引用参数
-        #offset? 
+        #offset?
         cdef int current_index = self.current_index
         if current_index >= (self.n_samples - 1):
             current_index = -1

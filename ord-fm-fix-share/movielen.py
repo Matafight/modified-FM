@@ -2,8 +2,8 @@
 import numpy as np
 from sklearn.feature_extraction import DictVectorizer
 import my_pyfmlib as pylibfm
-#import my_cross_validation as mcv
-import mymultiprocess as mcv
+#import my_cross_validation as mcv # multi-thread failed
+import mymultiprocess_crossvalidation as mcv
 
 def loadData(filename):
     data=[]

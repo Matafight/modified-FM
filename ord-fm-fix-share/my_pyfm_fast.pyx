@@ -78,7 +78,8 @@ cdef class FM_fast(object):
     cdef str dataname
     cdef DOUBLE sumloss
     cdef int count # what for?
-
+    cdef ndarray x_test
+    cdef ndarray y_test
     def __init__(self,
                   np.ndarray[DOUBLE,ndim=1,mode='c'] w,
                   np.ndarray[DOUBLE, ndim=2,mode='c'] v,
@@ -101,7 +102,9 @@ cdef class FM_fast(object):
                   int verbose,
                   dataname,
                   double reg_1,
-                  double reg_2):
+                  double reg_2,
+                  np.ndarray[DOUBLE,ndim=2,mode = 'c'] x_test,
+                  np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test):
         self.w0 = w0
         self.w = w
         self.v = v
@@ -131,7 +134,9 @@ cdef class FM_fast(object):
         self.dataname = dataname
         self.grad_w = np.zeros(self.num_attributes)
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
-
+        self.x_test = x_test
+        self.y_test = y_test
+        
     cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz):
         #helper variable
         cdef DOUBLE result = 0.0
@@ -262,6 +267,7 @@ cdef class FM_fast(object):
         cdef DOUBLE * validation_x_ind_ptr =NULL
 
         #helper variables
+        cdef int itercount=0
         cdef int xnnz
         cdef DOUBLE y = 0.0
         cdef DOUBLE validation_y = 0.0
@@ -297,6 +303,8 @@ cdef class FM_fast(object):
                 print(strtemp)
                 fh.write(strtemp)
                 #print ("Training %s:%.5f"%("MSE",(self.sumloss/self.count)))
+                if(itercount %10 ==0):
+                    pass
         fh.close()
 
 

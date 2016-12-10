@@ -3,7 +3,7 @@ import numpy as np
 import my_pyfmlib as pylibfm
 from sklearn import cross_validation
 from sklearn.cross_validation import KFold
-import threading
+from multiprocessing import Process, Lock
 class cross_val_regularization:
 
     def __init__(self,train_data,train_label,dataname):
@@ -25,12 +25,12 @@ class cross_val_regularization:
             y_train,y_test = self.train_label[train_index],self.train_label[valid_index]
             #print("-----"+str(count)+" fold"+"--total 5 fold")
             if count >= 1:
-                st = threading.Thread(target = self.sub_thread,args = (x_train,y_train,x_test,y_test,count))
+                st = Process(target = self.sub_thread,args = (x_train,y_train,x_test,y_test,count))
                 threadlist.append(st)
             count = count+1
         for st in threadlist:
             st.start()
-        #for st in threadlist:
+        for st in threadlist:
             st.join()
 
         print("---------ALL subthread completed")
@@ -43,7 +43,7 @@ class cross_val_regularization:
         return best_reg
     def sub_thread(self,x_train,y_train,x_test,y_test,seq):
         print("---Runing---"+str(seq)+"---subthread")
-        lock = threading.Lock()
+        lock = Lock()
         for reg_1_cro in range(self.length):
             for reg_2_cro in range(self.length):
                 fm = pylibfm.FM(num_factors = self.numfactors,num_iter=50,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=self.dataname,reg_1 = self.reg_set[reg_1_cro], reg_2 = self.reg_set[reg_2_cro])

@@ -76,7 +76,7 @@ class FM:
             return 0
 
 
-    def fit(self,X,y):
+    def fit(self,X,y,x_test,y_test):
         if type(y)!= np.ndarray:
             y = np.array(y)
         self._validate_params()
@@ -125,7 +125,9 @@ class FM:
                                    verbose,
                                    self.dataname,
                                    self.reg_1,
-                                   self.reg_2)
+                                   self.reg_2,
+                                   x_test,
+                                   y_test)
         return self.fm_fast.fit(X_train_dataset,validation_dataset)
 
     def predict(self,X):

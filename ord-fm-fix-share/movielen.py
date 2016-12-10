@@ -31,9 +31,9 @@ if __name__=='__main__':
 
     mycv = mcv.cross_val_regularization(x_train,train_label,train_data_name)
     best_reg = mycv.sele_para()
-    fm = pylibfm.FM(num_factors = 10,num_iter=100,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=train_data_name,reg_1 = best_reg[0], reg_2 = best_reg[1],x_test,test_label)
+    fm = pylibfm.FM(num_factors = 10,num_iter=100,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=train_data_name,reg_1 = best_reg[0], reg_2 = best_reg[1])
 
-    fm.fit(x_train,train_label)
+    fm.fit(x_train,train_label,x_test,test_label)
     pre_label = fm.predict(x_test)
 
     diff = 0.5*np.sum((pre_label-test_label)**2)/test_label.size

@@ -1,5 +1,201 @@
 --Epoch--1
-Training MSE--0.599136810337
+Training MSE--0.603183988219
 --Epoch--2
-Training MSE--0.524947998471
+Training MSE--0.527038278932
 --Epoch--3
+Training MSE--0.498175936529
+--Epoch--4
+Training MSE--0.481227286825
+--Epoch--5
+Training MSE--0.469703474354
+--Epoch--6
+Training MSE--0.461462666282
+--Epoch--7
+Training MSE--0.455313313778
+--Epoch--8
+Training MSE--0.450160742119
+--Epoch--9
+Training MSE--0.446006513492
+--Epoch--10
+Training MSE--0.442518507143
+--Epoch--11
+Training MSE--0.439486980886
+--Epoch--12
+Training MSE--0.436818184351
+--Epoch--13
+Training MSE--0.434377341364
+--Epoch--14
+Training MSE--0.432285631808
+--Epoch--15
+Training MSE--0.430304893663
+--Epoch--16
+Training MSE--0.428403795875
+--Epoch--17
+Training MSE--0.426796054462
+--Epoch--18
+Training MSE--0.425157278891
+--Epoch--19
+Training MSE--0.423713550036
+--Epoch--20
+Training MSE--0.422215816575
+--Epoch--21
+Training MSE--0.42088439655
+--Epoch--22
+Training MSE--0.419546752853
+--Epoch--23
+Training MSE--0.418164781133
+--Epoch--24
+Training MSE--0.416901515534
+--Epoch--25
+Training MSE--0.415539823924
+--Epoch--26
+Training MSE--0.414220949198
+--Epoch--27
+Training MSE--0.412879896508
+--Epoch--28
+Training MSE--0.411614475928
+--Epoch--29
+Training MSE--0.410246346141
+--Epoch--30
+Training MSE--0.408855638997
+--Epoch--31
+Training MSE--0.407457057672
+--Epoch--32
+Training MSE--0.405975309929
+--Epoch--33
+Training MSE--0.404371047715
+--Epoch--34
+Training MSE--0.402738831265
+--Epoch--35
+Training MSE--0.401237952536
+--Epoch--36
+Training MSE--0.399553767899
+--Epoch--37
+Training MSE--0.397831629445
+--Epoch--38
+Training MSE--0.396085287951
+--Epoch--39
+Training MSE--0.394145206039
+--Epoch--40
+Training MSE--0.392283623349
+--Epoch--41
+Training MSE--0.390311822979
+--Epoch--42
+Training MSE--0.388232778176
+--Epoch--43
+Training MSE--0.386153662207
+--Epoch--44
+Training MSE--0.384110429182
+--Epoch--45
+Training MSE--0.381939001064
+--Epoch--46
+Training MSE--0.379804834808
+--Epoch--47
+Training MSE--0.377588049139
+--Epoch--48
+Training MSE--0.375398507758
+--Epoch--49
+Training MSE--0.373102949717
+--Epoch--50
+Training MSE--0.370928676706
+--Epoch--51
+Training MSE--0.368560909053
+--Epoch--52
+Training MSE--0.366445365379
+--Epoch--53
+Training MSE--0.364220332392
+--Epoch--54
+Training MSE--0.361908464886
+--Epoch--55
+Training MSE--0.359720161594
+--Epoch--56
+Training MSE--0.35752194763
+--Epoch--57
+Training MSE--0.355262264944
+--Epoch--58
+Training MSE--0.353227652805
+--Epoch--59
+Training MSE--0.351110115057
+--Epoch--60
+Training MSE--0.349020594955
+--Epoch--61
+Training MSE--0.346845948449
+--Epoch--62
+Training MSE--0.344782849641
+--Epoch--63
+Training MSE--0.342848768637
+--Epoch--64
+Training MSE--0.340773296269
+--Epoch--65
+Training MSE--0.338813045905
+--Epoch--66
+Training MSE--0.33687770768
+--Epoch--67
+Training MSE--0.334992351642
+--Epoch--68
+Training MSE--0.333081748071
+--Epoch--69
+Training MSE--0.331239922436
+--Epoch--70
+Training MSE--0.329456396371
+--Epoch--71
+Training MSE--0.327704916786
+--Epoch--72
+Training MSE--0.325982512468
+--Epoch--73
+Training MSE--0.324249370792
+--Epoch--74
+Training MSE--0.322541200416
+--Epoch--75
+Training MSE--0.320909683748
+--Epoch--76
+Training MSE--0.319266286224
+--Epoch--77
+Training MSE--0.31774379727
+--Epoch--78
+Training MSE--0.316132296105
+--Epoch--79
+Training MSE--0.314629457166
+--Epoch--80
+Training MSE--0.313186097846
+--Epoch--81
+Training MSE--0.311763593936
+--Epoch--82
+Training MSE--0.310174028897
+--Epoch--83
+Training MSE--0.308917245992
+--Epoch--84
+Training MSE--0.307555327942
+--Epoch--85
+Training MSE--0.306156989472
+--Epoch--86
+Training MSE--0.304808033883
+--Epoch--87
+Training MSE--0.303555689999
+--Epoch--88
+Training MSE--0.302283941821
+--Epoch--89
+Training MSE--0.30094683722
+--Epoch--90
+Training MSE--0.299727630453
+--Epoch--91
+Training MSE--0.298630567795
+--Epoch--92
+Training MSE--0.297474740022
+--Epoch--93
+Training MSE--0.296272067851
+--Epoch--94
+Training MSE--0.295194556931
+--Epoch--95
+Training MSE--0.294070537202
+--Epoch--96
+Training MSE--0.292986224492
+--Epoch--97
+Training MSE--0.291947749621
+--Epoch--98
+Training MSE--0.290877074141
+--Epoch--99
+Training MSE--0.289902100151
+--Epoch--100
+Training MSE--0.288934264532
+--test--RMSE---0.879518456907

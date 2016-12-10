@@ -78,8 +78,8 @@ cdef class FM_fast(object):
     cdef str dataname
     cdef DOUBLE sumloss
     cdef int count # what for?
-    cdef ndarray x_test
-    cdef ndarray y_test
+    cdef CSRDataset x_test
+    cdef np.ndarray y_test
     def __init__(self,
                   np.ndarray[DOUBLE,ndim=1,mode='c'] w,
                   np.ndarray[DOUBLE, ndim=2,mode='c'] v,
@@ -103,7 +103,7 @@ cdef class FM_fast(object):
                   dataname,
                   double reg_1,
                   double reg_2,
-                  np.ndarray[DOUBLE,ndim=2,mode = 'c'] x_test,
+                  CSRDataset x_test,
                   np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test):
         self.w0 = w0
         self.w = w
@@ -134,9 +134,11 @@ cdef class FM_fast(object):
         self.dataname = dataname
         self.grad_w = np.zeros(self.num_attributes)
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
+        #if(verbose==False):
+
         self.x_test = x_test
         self.y_test = y_test
-        
+
     cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz):
         #helper variable
         cdef DOUBLE result = 0.0
@@ -277,8 +279,8 @@ cdef class FM_fast(object):
         cdef unsigned int i =0
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE validation_sample_weight=1.0
-
         fh = open('./results/'+self.dataname,'w')
+        fhtest = open('./results/'+'iter_test_error_'+self.dataname,'w')
         for epoch in range(self.n_iter):
             if self.verbose >0 :
                 strtemp = "--Epoch--"+str(epoch+1)+"\n"
@@ -303,9 +305,15 @@ cdef class FM_fast(object):
                 print(strtemp)
                 fh.write(strtemp)
                 #print ("Training %s:%.5f"%("MSE",(self.sumloss/self.count)))
-                if(itercount %10 ==0):
-                    pass
+                if(itercount % 10 ==0):
+                    iter_error = 0.0
+                    pre_test = self._predict(self.x_test)
+                    iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
+                    print("=======test_error===="+str(iter_error))
+                    fhtest.write("iter: "+str(itercount)+" test_error: "+str(iter_error)+'\n')
+            itercount +=1
         fh.close()
+        fhtest.close()
 
 
 
@@ -328,6 +336,7 @@ cdef inline double max(double a, double b):
 
 cdef inline double min(double a, double b):
     return a if a <= b else b
+
 
 
 cdef class CSRDataset:

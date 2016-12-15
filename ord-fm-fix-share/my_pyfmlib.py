@@ -1,4 +1,3 @@
-#_*_coding:utf-8_*_
 import numpy as np
 from sklearn import cross_validation
 import random
@@ -26,8 +25,9 @@ class FM:
                  seed = 28,
                  dataname = "unknown",
                  reg_1 = 0.01,
-                 reg_2 = 0.01,):
-        # y_test x_test 如果verbose的false的时候不会被访问，so, initial them anyway
+                 reg_2 = 0.01,
+                 x_test,
+                 y_test):
         self.num_factors=num_factors
         self.num_iter = num_iter
         self.sum = np.zeros(self.num_factors)
@@ -55,6 +55,8 @@ class FM:
         #local parameters in the lambda update
         #omit here
         self.dataname = dataname
+        self.x_test = x_test
+        self.y_test = y_test
     def _validate_params(self):
         if not isinstance(self.shuffle_training, bool):
             raise ValueError("shuffle must be either true or false")
@@ -78,7 +80,7 @@ class FM:
             return 0
 
 
-    def fit(self,X,y,x_test,y_test):
+    def fit(self,X,y):
         if type(y)!= np.ndarray:
             y = np.array(y)
         self._validate_params()
@@ -99,13 +101,7 @@ class FM:
 
         X_train_dataset = _make_dataset(X_train,train_labels)
         validation_dataset = _make_dataset(validation,validation_labels)
-        if(self.verbose ==True):
-            x_test_data = _make_dataset(x_test,np.ones(x_test.shape[0]))
-        else:
-            #when verbose is false, x_test_data is never visited in FM_fast, so it doesn't matter what it is
-            # but x_test_data must be the type of CSRDataset, so let x_test_data = x_train_dataset
-            x_test_data = X_train_dataset
-            y_test = np.ones(6)
+
         #setup params
         self.w0 = 0.0
         self.w = np.zeros(self.num_attribute)
@@ -134,13 +130,15 @@ class FM:
                                    self.dataname,
                                    self.reg_1,
                                    self.reg_2,
-                                   x_test_data,
-                                   y_test)
+                                   self.x_test,
+                                   self.y_test)
         return self.fm_fast.fit(X_train_dataset,validation_dataset)
 
     def predict(self,X):
         sparse_X = _make_dataset(X,np.ones(X.shape[0]))
         return self.fm_fast._predict(sparse_X)
+
+
 
 
 

@@ -7,7 +7,7 @@ from multiprocessing import Process, Lock
 class cross_val_regularization:
 
     def __init__(self,train_data,train_label,dataname):
-        self.reg_set = [0.001,0.01]
+        self.reg_set = [0.001,0.01,0.1,1,10,100]
         self.length = len(self.reg_set)
         self.numfactors = 10
         self.train_data = train_data
@@ -20,7 +20,6 @@ class cross_val_regularization:
         kf = KFold(np.shape(self.train_data)[0],n_folds = 5)
         count = 1
         threadlist=[]
-        print("-----enter crossvalidation process-------")
         for train_index,valid_index in kf:
             x_train,x_test = self.train_data[train_index],self.train_data[valid_index]
             y_train,y_test = self.train_label[train_index],self.train_label[valid_index]
@@ -47,9 +46,8 @@ class cross_val_regularization:
         lock = Lock()
         for reg_1_cro in range(self.length):
             for reg_2_cro in range(self.length):
-                fm = pylibfm.FM(num_factors = self.numfactors,num_iter=5,verbose = False,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=self.dataname,reg_1 = self.reg_set[reg_1_cro], reg_2 = self.reg_set[reg_2_cro])
-                # the last two para of fm.fit can be anything as long as verbose = false
-                fm.fit(x_train,y_train,0,0)
+                fm = pylibfm.FM(num_factors = self.numfactors,num_iter=50,verbose = False,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=self.dataname,reg_1 = self.reg_set[reg_1_cro], reg_2 = self.reg_set[reg_2_cro])
+                fm.fit(x_train,y_train)
                 pre_label = fm.predict(x_test)
                 diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
                 #print("--In "+ str(count-1) + " fold  "+" reg_1 = "+str(self.reg_set[reg_1_cro]) + "reg_2 = "+str( self.reg_set[reg_2_cro]))

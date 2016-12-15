@@ -75,7 +75,7 @@ class FM:
             return 0
 
 
-    def fit(self,X,y):
+    def fit(self,X,y,x_test,y_test):
         if type(y)!= np.ndarray:
             y = np.array(y)
         self._validate_params()
@@ -90,13 +90,14 @@ class FM:
             #use sklearn to create a validation dataset for lambda updates
         if self.verbose == True:
             print("creating validation dataset of %.2f of training ")
-           
+
         X_train,validation,train_labels,validation_labels = cross_validation.train_test_split(X,y, test_size = self.validation_size)
         self.num_attribute = X_train.shape[1]
 
         X_train_dataset = _make_dataset(X_train,train_labels)
         validation_dataset = _make_dataset(validation,validation_labels)
-
+        if(self.verbose ==True):
+            x_test_data = _make_dataset(x_test,np.ones(x_test.shape[0]))
         #setup params
         self.w0 = 0.0
         self.w = np.zeros(self.num_attribute)
@@ -121,9 +122,11 @@ class FM:
                                    shuffle_training,
                                    task,
                                    self.seed,
-                                   verbose,self.dataname)
+                                   verbose,self.dataname,
+                                   x_test_data,
+                                   y_test)
         return self.fm_fast.fit(X_train_dataset,validation_dataset)
-            
+
         #if self.verbose == True:
          #       print("--Epoch %d"%(epoch + 1))
          #      print("Train MSE: %.5f"%(self.sumloss/self.count))

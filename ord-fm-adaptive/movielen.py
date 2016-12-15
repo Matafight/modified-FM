@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.feature_extraction import DictVectorizer
-from pyfm import pylibfm
+import pylibfm
+
+
 
 def loadData(filename):
     data=[]
@@ -16,17 +18,20 @@ def loadData(filename):
             items.add(movieid)
     return (data,np.array(y),users,items)
 
-(train_data,train_label,train_users,train_items)= loadData('u1.base')
-(test_data,test_label,test_users,test_items)=loadData('u1.test')
-v = DictVectorizer()
-x_train=v.fit_transform(train_data)
-x_test = v.fit_transform(test_data)
+if __name__ == "__main__":
 
-fm = pylibfm.FM(num_factors = 10,num_iter=100,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal")
+    train_data_name = 'u2.base'
+    test_data_name = 'u2.test'
+    (train_data,train_label,train_users,train_items)= loadData('../data/'+train_data_name)
+    (test_data,test_label,test_users,test_items)=loadData('../data/' + test_data_name)
+    v = DictVectorizer()
+    x_train=v.fit_transform(train_data)
+    x_test = v.fit_transform(test_data)
 
-fm.fit(x_train,train_label)
-pre_label = fm.predict(x_test)
+    fm = pylibfm.FM(num_factors = 10,num_iter=100,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname = test_data_name)
 
-diff = 0.5*np.sum((pre_label-test_label)**2)/test_label.size
-print(diff)
+    fm.fit(x_train,train_label,x_test,test_label)
+    pre_label = fm.predict(x_test)
 
+    diff = 0.5*np.sum((pre_label-test_label)**2)/test_label.size
+    print(diff)

@@ -63,7 +63,8 @@ class FM:
                  task='classification',
                  verbose=True,
                  shuffle_training=True,
-                 seed = 28):
+                 seed = 28,
+                 dataname = "unknown"):
 
         self.num_factors = num_factors
         self.num_iter = num_iter
@@ -96,6 +97,7 @@ class FM:
         self.sum_f = 0.0
         self.sum_f_dash_f = 0.0
         self.verbose = verbose
+        self.dataname = dataname
 
     def _validate_params(self):
         """Validate input params. """
@@ -136,7 +138,7 @@ class FM:
         y_i[y != 1] = -1.0
         return y_i
 
-    def fit(self, X, y):
+    def fit(self, X, y, x_test , y_test):
         """Fit factorization machine using Stochastic Gradient Descent with Adaptive Regularization.
 
         Parameters
@@ -181,6 +183,15 @@ class FM:
         X_train_dataset = _make_dataset(X_train, train_labels)
         validation_dataset = _make_dataset(validation, validation_labels)
 
+        #create test data
+        if self.verbose == False:
+            # don't test on the test data,so x_test and y_test won't be used , their value is unimportant
+            x_test_dataset = X_train_dataset
+            y_test = train_labels
+        else:
+            #make data
+            x_test_dataset = _make_dataset(x_test,np.ones(x_test.shape[0]))
+
         # Set up params
         self.w0 = 0.0
         self.w = np.zeros(self.num_attribute)
@@ -205,7 +216,10 @@ class FM:
                                shuffle_training,
                                task,
                                self.seed,
-                               verbose)
+                               verbose,
+                               self.dataname,
+                               x_test_dataset,
+                               y_test)
 
         return self.fm_fast.fit(X_train_dataset, validation_dataset)
 
@@ -238,4 +252,3 @@ def _make_dataset(X, y_i):
     sample_weight = np.ones(X.shape[0], dtype=np.float64, order='C') # ignore sample weight for the moment
     dataset = CSRDataset(X.data, X.indptr, X.indices, y_i, sample_weight)
     return dataset
-

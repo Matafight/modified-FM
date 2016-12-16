@@ -1,1 +1,5 @@
-iter:0  test_error:  0.644632039194
+iter:0  test_error:  0.60349969073
+iter:10  test_error:  0.642363911731
+iter:20  test_error:  0.674033832834
+iter:30  test_error:  0.69616014853
+iter:40  test_error:  0.712825299846

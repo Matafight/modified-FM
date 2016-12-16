@@ -10,7 +10,7 @@
 import numpy as np
 import sys
 from time import time
-
+import random
 from libc.math cimport exp, log, pow
 cimport numpy as np
 cimport cython
@@ -426,10 +426,14 @@ cdef class FM_fast(object):
             self.sumloss = 0
             if self.shuffle_training:
                 dataset.shuffle(self.seed)
-
-            for i in range(n_samples):
-                dataset.next( & x_data_ptr, & x_ind_ptr, & xnnz, & y,
-                             & sample_weight)
+            # I want to randomly select a small batch of all training samples for training in each iteration
+            num_sample_iter = 20
+            selected_list = random.sample(range(n_samples),num_sample_iter)
+            #for i in range(n_samples):
+            for i in selected_list:
+                #dataset.next( & x_data_ptr, & x_ind_ptr, & xnnz, & y,
+                  #           & sample_weight)
+                dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
 
                 self._sgd_theta_step(x_data_ptr, x_ind_ptr, xnnz, y)
 
@@ -522,6 +526,7 @@ cdef class CSRDataset:
         """
         self.n_samples = Y.shape[0]
         self.current_index = -1
+        # x_data.data return the buffer object pointing  to the start of the array's data
         self.X_data_ptr = <DOUBLE *>X_data.data
         self.X_indptr_ptr = <INTEGER *>X_indptr.data
         self.X_indices_ptr = <INTEGER *>X_indices.data
@@ -553,6 +558,15 @@ cdef class CSRDataset:
         sample_weight[0] = self.sample_weight_data[sample_idx]
 
         self.current_index = current_index
+    cdef void data_index(self,DOUBLE **x_data_ptr,INTEGER ** x_ind_ptr, int * nnz, DOUBLE *y, DOUBLE * sample_weight,INTEGER new_index):
+
+        cdef int sample_idx = self.index_data_ptr[new_index]
+        cdef int offset = self.X_indptr_ptr[sample_idx]
+        y[0] = self.Y_data_ptr[sample_idx]
+        x_data_ptr[0] = self.X_data_ptr + offset
+        x_ind_ptr[0] = self.X_indices_ptr + offset
+        nnz[0] = self.X_indptr_ptr[sample_idx + 1] - offset
+        sample_weight[0] = self.sample_weight_data[sample_idx]
 
     cdef void shuffle(self, seed):
         np.random.RandomState(seed).shuffle(self.index)

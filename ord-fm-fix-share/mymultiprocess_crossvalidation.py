@@ -47,7 +47,7 @@ class cross_val_regularization:
         for reg_1_cro in range(self.length):
             for reg_2_cro in range(self.length):
                 fm = pylibfm.FM(num_factors = self.numfactors,num_iter=50,verbose = False,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=self.dataname,reg_1 = self.reg_set[reg_1_cro], reg_2 = self.reg_set[reg_2_cro])
-                fm.fit(x_train,y_train)
+                fm.fit(x_train,y_train,1,1)
                 pre_label = fm.predict(x_test)
                 diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
                 #print("--In "+ str(count-1) + " fold  "+" reg_1 = "+str(self.reg_set[reg_1_cro]) + "reg_2 = "+str( self.reg_set[reg_2_cro]))

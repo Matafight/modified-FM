@@ -25,9 +25,7 @@ class FM:
                  seed = 28,
                  dataname = "unknown",
                  reg_1 = 0.01,
-                 reg_2 = 0.01,
-                 x_test,
-                 y_test):
+                 reg_2 = 0.01):
         self.num_factors=num_factors
         self.num_iter = num_iter
         self.sum = np.zeros(self.num_factors)
@@ -55,8 +53,6 @@ class FM:
         #local parameters in the lambda update
         #omit here
         self.dataname = dataname
-        self.x_test = x_test
-        self.y_test = y_test
     def _validate_params(self):
         if not isinstance(self.shuffle_training, bool):
             raise ValueError("shuffle must be either true or false")
@@ -80,7 +76,7 @@ class FM:
             return 0
 
 
-    def fit(self,X,y):
+    def fit(self,X,y,x_test,y_test):
         if type(y)!= np.ndarray:
             y = np.array(y)
         self._validate_params()
@@ -102,6 +98,11 @@ class FM:
         X_train_dataset = _make_dataset(X_train,train_labels)
         validation_dataset = _make_dataset(validation,validation_labels)
 
+        if self.verbose==True:
+            x_test_data = _make_dataset(x_test,np.ones(x_test.shape[0]))
+        else:
+            x_test_data = X_train_dataset
+            y_test = np.ones(10)
         #setup params
         self.w0 = 0.0
         self.w = np.zeros(self.num_attribute)
@@ -130,8 +131,8 @@ class FM:
                                    self.dataname,
                                    self.reg_1,
                                    self.reg_2,
-                                   self.x_test,
-                                   self.y_test)
+                                   x_test_data,
+                                   y_test)
         return self.fm_fast.fit(X_train_dataset,validation_dataset)
 
     def predict(self,X):

@@ -4,6 +4,7 @@ import numpy as np
 import sys
 from time import time
 from libc.math cimport exp,log,pow,sqrt
+import random
 cimport numpy as np
 cimport cython
 
@@ -293,8 +294,14 @@ cdef class FM_fast(object):
             if self.shuffle_training:
                 dataset.shuffle(self.seed)
 
-            for i in range(n_samples):
-                dataset.next(&x_data_ptr, & x_ind_ptr, &xnnz,&y,&sample_weight)
+            num_sample_iter = 20
+            selected_list = random.sample(range(n_samples),num_sample_iter)
+
+            for i in selected_list:
+                dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
+
+                #for i in range(n_samples):
+                #dataset.next(&x_data_ptr, & x_ind_ptr, &xnnz,&y,&sample_weight)
                 self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
 
                 if(epoch > 0):
@@ -417,6 +424,13 @@ cdef class CSRDataset:
         sample_weight[0] = self.sample_weight_data[sample_idx]
 
         self.current_index = current_index
-
+    cdef void data_index(self,DOUBLE **x_data_ptr,INTEGER ** x_ind_ptr, int * nnz, DOUBLE *y, DOUBLE * sample_weight,INTEGER new_index):
+        cdef int sample_idx = self.index_data_ptr[new_index]
+        cdef int offset = self.X_indptr_ptr[sample_idx]
+        y[0] = self.Y_data_ptr[sample_idx]
+        x_data_ptr[0] = self.X_data_ptr + offset
+        x_ind_ptr[0] = self.X_indices_ptr + offset
+        nnz[0] = self.X_indptr_ptr[sample_idx + 1] - offset
+        sample_weight[0] = self.sample_weight_data[sample_idx]
     cdef void shuffle(self, seed):
         np.random.RandomState(seed).shuffle(self.index)

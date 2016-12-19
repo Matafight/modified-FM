@@ -1,0 +1,1001 @@
+--Epoch--1
+Training MSE--3.925
+--Epoch--2
+Training MSE--4.45
+--Epoch--3
+Training MSE--3.45
+--Epoch--4
+Training MSE--3.525
+--Epoch--5
+Training MSE--3.575
+--Epoch--6
+Training MSE--3.2
+--Epoch--7
+Training MSE--3.35
+--Epoch--8
+Training MSE--4.425
+--Epoch--9
+Training MSE--4.45
+--Epoch--10
+Training MSE--4.04821642491
+--Epoch--11
+Training MSE--4.15131392286
+--Epoch--12
+Training MSE--4.32156115785
+--Epoch--13
+Training MSE--3.11675415539
+--Epoch--14
+Training MSE--2.87250729928
+--Epoch--15
+Training MSE--2.33108319449
+--Epoch--16
+Training MSE--2.15432170116
+--Epoch--17
+Training MSE--2.41285106193
+--Epoch--18
+Training MSE--2.9469949836
+--Epoch--19
+Training MSE--2.66724164701
+--Epoch--20
+Training MSE--1.84467042894
+--Epoch--21
+Training MSE--2.49218333852
+--Epoch--22
+Training MSE--1.70026339952
+--Epoch--23
+Training MSE--2.43076820095
+--Epoch--24
+Training MSE--1.7256945314
+--Epoch--25
+Training MSE--1.54355061186
+--Epoch--26
+Training MSE--1.84144845741
+--Epoch--27
+Training MSE--1.73717238692
+--Epoch--28
+Training MSE--0.99095559098
+--Epoch--29
+Training MSE--0.90527632887
+--Epoch--30
+Training MSE--1.21876675343
+--Epoch--31
+Training MSE--0.961901558698
+--Epoch--32
+Training MSE--1.36842487377
+--Epoch--33
+Training MSE--1.4498509597
+--Epoch--34
+Training MSE--0.699707126558
+--Epoch--35
+Training MSE--0.971537665049
+--Epoch--36
+Training MSE--0.895329907689
+--Epoch--37
+Training MSE--1.07447797117
+--Epoch--38
+Training MSE--0.901328506899
+--Epoch--39
+Training MSE--0.894871198021
+--Epoch--40
+Training MSE--1.12615185555
+--Epoch--41
+Training MSE--0.155524148298
+--Epoch--42
+Training MSE--0.901454734949
+--Epoch--43
+Training MSE--0.90421843045
+--Epoch--44
+Training MSE--0.677474727702
+--Epoch--45
+Training MSE--0.757839725942
+--Epoch--46
+Training MSE--1.04961813126
+--Epoch--47
+Training MSE--0.704381050846
+--Epoch--48
+Training MSE--0.890390278862
+--Epoch--49
+Training MSE--0.900118724618
+--Epoch--50
+Training MSE--0.541394707017
+--Epoch--51
+Training MSE--0.749091518145
+--Epoch--52
+Training MSE--0.639125204263
+--Epoch--53
+Training MSE--0.625177394316
+--Epoch--54
+Training MSE--0.481236270019
+--Epoch--55
+Training MSE--0.847842153262
+--Epoch--56
+Training MSE--0.862097555664
+--Epoch--57
+Training MSE--0.871939730692
+--Epoch--58
+Training MSE--0.553202901583
+--Epoch--59
+Training MSE--0.393713435365
+--Epoch--60
+Training MSE--0.437677502608
+--Epoch--61
+Training MSE--0.580963822727
+--Epoch--62
+Training MSE--0.588383133407
+--Epoch--63
+Training MSE--0.539563735041
+--Epoch--64
+Training MSE--0.773439692873
+--Epoch--65
+Training MSE--0.649782372076
+--Epoch--66
+Training MSE--0.598057720279
+--Epoch--67
+Training MSE--0.489767675026
+--Epoch--68
+Training MSE--0.486172575016
+--Epoch--69
+Training MSE--0.520380156819
+--Epoch--70
+Training MSE--1.03373416269
+--Epoch--71
+Training MSE--0.526502475143
+--Epoch--72
+Training MSE--0.562940619255
+--Epoch--73
+Training MSE--0.708664826076
+--Epoch--74
+Training MSE--0.558980230717
+--Epoch--75
+Training MSE--0.935568504597
+--Epoch--76
+Training MSE--0.799599342814
+--Epoch--77
+Training MSE--0.668984868561
+--Epoch--78
+Training MSE--0.662810345975
+--Epoch--79
+Training MSE--0.376750626365
+--Epoch--80
+Training MSE--0.402371925403
+--Epoch--81
+Training MSE--0.84774046194
+--Epoch--82
+Training MSE--0.726103336428
+--Epoch--83
+Training MSE--0.67303727683
+--Epoch--84
+Training MSE--0.889744772897
+--Epoch--85
+Training MSE--0.55283557231
+--Epoch--86
+Training MSE--0.577139198582
+--Epoch--87
+Training MSE--0.744338291994
+--Epoch--88
+Training MSE--0.632932685454
+--Epoch--89
+Training MSE--0.5724358062
+--Epoch--90
+Training MSE--0.826065660101
+--Epoch--91
+Training MSE--0.696977214033
+--Epoch--92
+Training MSE--0.759272163617
+--Epoch--93
+Training MSE--0.490828969222
+--Epoch--94
+Training MSE--0.717821269561
+--Epoch--95
+Training MSE--0.702667985469
+--Epoch--96
+Training MSE--0.647715579496
+--Epoch--97
+Training MSE--0.884595781294
+--Epoch--98
+Training MSE--0.741091623721
+--Epoch--99
+Training MSE--0.792523763719
+--Epoch--100
+Training MSE--0.578773272593
+--Epoch--101
+Training MSE--0.430207467561
+--Epoch--102
+Training MSE--0.689100181573
+--Epoch--103
+Training MSE--0.435417203031
+--Epoch--104
+Training MSE--0.573766675966
+--Epoch--105
+Training MSE--0.639962928238
+--Epoch--106
+Training MSE--0.618549066596
+--Epoch--107
+Training MSE--0.828928685327
+--Epoch--108
+Training MSE--0.340590434517
+--Epoch--109
+Training MSE--0.274707449922
+--Epoch--110
+Training MSE--0.530332891806
+--Epoch--111
+Training MSE--0.463612270841
+--Epoch--112
+Training MSE--0.562952448754
+--Epoch--113
+Training MSE--0.573475433132
+--Epoch--114
+Training MSE--0.551742603552
+--Epoch--115
+Training MSE--0.428409629085
+--Epoch--116
+Training MSE--0.422641979664
+--Epoch--117
+Training MSE--0.824741444685
+--Epoch--118
+Training MSE--0.419946669247
+--Epoch--119
+Training MSE--0.523663508394
+--Epoch--120
+Training MSE--0.671661973445
+--Epoch--121
+Training MSE--0.51346082585
+--Epoch--122
+Training MSE--0.460810721024
+--Epoch--123
+Training MSE--0.878807833466
+--Epoch--124
+Training MSE--0.674776402418
+--Epoch--125
+Training MSE--0.515318421344
+--Epoch--126
+Training MSE--0.457145031309
+--Epoch--127
+Training MSE--0.366464449391
+--Epoch--128
+Training MSE--0.546110485237
+--Epoch--129
+Training MSE--0.362573110074
+--Epoch--130
+Training MSE--0.328179949137
+--Epoch--131
+Training MSE--0.47676786485
+--Epoch--132
+Training MSE--0.409614976878
+--Epoch--133
+Training MSE--0.484617336854
+--Epoch--134
+Training MSE--0.559002655372
+--Epoch--135
+Training MSE--0.764347310577
+--Epoch--136
+Training MSE--0.522839860803
+--Epoch--137
+Training MSE--0.422581304841
+--Epoch--138
+Training MSE--0.629200896411
+--Epoch--139
+Training MSE--0.556385668056
+--Epoch--140
+Training MSE--0.563812885284
+--Epoch--141
+Training MSE--0.658908514056
+--Epoch--142
+Training MSE--0.726779293808
+--Epoch--143
+Training MSE--0.6700199397
+--Epoch--144
+Training MSE--0.627212742024
+--Epoch--145
+Training MSE--0.401100001988
+--Epoch--146
+Training MSE--0.548364106785
+--Epoch--147
+Training MSE--0.939751259973
+--Epoch--148
+Training MSE--1.09747000513
+--Epoch--149
+Training MSE--0.633088855301
+--Epoch--150
+Training MSE--0.836564958494
+--Epoch--151
+Training MSE--1.04359738113
+--Epoch--152
+Training MSE--0.997881402445
+--Epoch--153
+Training MSE--0.419610545789
+--Epoch--154
+Training MSE--0.626605350912
+--Epoch--155
+Training MSE--0.536771072914
+--Epoch--156
+Training MSE--0.463251855885
+--Epoch--157
+Training MSE--0.754696899426
+--Epoch--158
+Training MSE--0.73435080252
+--Epoch--159
+Training MSE--0.939956256789
+--Epoch--160
+Training MSE--0.580004944468
+--Epoch--161
+Training MSE--0.921131501513
+--Epoch--162
+Training MSE--0.61884436699
+--Epoch--163
+Training MSE--0.529133159817
+--Epoch--164
+Training MSE--0.519117820246
+--Epoch--165
+Training MSE--0.874109975152
+--Epoch--166
+Training MSE--0.626961598536
+--Epoch--167
+Training MSE--0.513236959928
+--Epoch--168
+Training MSE--0.567451394927
+--Epoch--169
+Training MSE--0.715137416962
+--Epoch--170
+Training MSE--0.526908720529
+--Epoch--171
+Training MSE--0.712621759339
+--Epoch--172
+Training MSE--0.833969015139
+--Epoch--173
+Training MSE--0.709566535408
+--Epoch--174
+Training MSE--0.4922720378
+--Epoch--175
+Training MSE--0.42053527418
+--Epoch--176
+Training MSE--0.492895478472
+--Epoch--177
+Training MSE--0.735905834016
+--Epoch--178
+Training MSE--0.521480109417
+--Epoch--179
+Training MSE--0.60331982532
+--Epoch--180
+Training MSE--0.43056093854
+--Epoch--181
+Training MSE--0.574845993042
+--Epoch--182
+Training MSE--0.529169875139
+--Epoch--183
+Training MSE--0.554807647588
+--Epoch--184
+Training MSE--0.813030699832
+--Epoch--185
+Training MSE--0.628217076351
+--Epoch--186
+Training MSE--0.56745640879
+--Epoch--187
+Training MSE--0.561517169915
+--Epoch--188
+Training MSE--0.367123916116
+--Epoch--189
+Training MSE--0.621493272796
+--Epoch--190
+Training MSE--0.67029221366
+--Epoch--191
+Training MSE--0.653152823322
+--Epoch--192
+Training MSE--0.606226836507
+--Epoch--193
+Training MSE--0.427183746492
+--Epoch--194
+Training MSE--0.5917900877
+--Epoch--195
+Training MSE--0.687194324284
+--Epoch--196
+Training MSE--0.992161279872
+--Epoch--197
+Training MSE--0.375147887738
+--Epoch--198
+Training MSE--0.793613491002
+--Epoch--199
+Training MSE--0.821297656317
+--Epoch--200
+Training MSE--0.468992298204
+--Epoch--201
+Training MSE--0.274352380937
+--Epoch--202
+Training MSE--0.425308181796
+--Epoch--203
+Training MSE--0.668702757623
+--Epoch--204
+Training MSE--0.475867127376
+--Epoch--205
+Training MSE--0.567968180143
+--Epoch--206
+Training MSE--0.365205570242
+--Epoch--207
+Training MSE--0.678222074935
+--Epoch--208
+Training MSE--0.824524999303
+--Epoch--209
+Training MSE--0.63287737385
+--Epoch--210
+Training MSE--1.16054922735
+--Epoch--211
+Training MSE--0.336181652304
+--Epoch--212
+Training MSE--0.536044493723
+--Epoch--213
+Training MSE--0.574808614721
+--Epoch--214
+Training MSE--0.623619381424
+--Epoch--215
+Training MSE--0.560196143857
+--Epoch--216
+Training MSE--0.557748451721
+--Epoch--217
+Training MSE--0.719522414252
+--Epoch--218
+Training MSE--0.900706637358
+--Epoch--219
+Training MSE--0.539594825676
+--Epoch--220
+Training MSE--0.520005527804
+--Epoch--221
+Training MSE--0.480874355956
+--Epoch--222
+Training MSE--0.788858607869
+--Epoch--223
+Training MSE--0.555935989767
+--Epoch--224
+Training MSE--0.363054304932
+--Epoch--225
+Training MSE--0.587307715135
+--Epoch--226
+Training MSE--0.410534483633
+--Epoch--227
+Training MSE--0.873922340763
+--Epoch--228
+Training MSE--0.871266513461
+--Epoch--229
+Training MSE--0.535019002663
+--Epoch--230
+Training MSE--0.833291055462
+--Epoch--231
+Training MSE--0.59233167607
+--Epoch--232
+Training MSE--0.750001650554
+--Epoch--233
+Training MSE--0.662300296164
+--Epoch--234
+Training MSE--0.518781708367
+--Epoch--235
+Training MSE--0.619013523926
+--Epoch--236
+Training MSE--0.871964516348
+--Epoch--237
+Training MSE--0.764714362058
+--Epoch--238
+Training MSE--0.656736862557
+--Epoch--239
+Training MSE--0.711449613585
+--Epoch--240
+Training MSE--0.472609904623
+--Epoch--241
+Training MSE--0.716882623044
+--Epoch--242
+Training MSE--0.51399935143
+--Epoch--243
+Training MSE--0.62297252626
+--Epoch--244
+Training MSE--0.88303349703
+--Epoch--245
+Training MSE--0.637707588214
+--Epoch--246
+Training MSE--0.599864594651
+--Epoch--247
+Training MSE--0.80242806559
+--Epoch--248
+Training MSE--0.752229238571
+--Epoch--249
+Training MSE--0.863086738538
+--Epoch--250
+Training MSE--0.809798298846
+--Epoch--251
+Training MSE--0.519747870822
+--Epoch--252
+Training MSE--0.679474440674
+--Epoch--253
+Training MSE--0.550346989883
+--Epoch--254
+Training MSE--0.905662919355
+--Epoch--255
+Training MSE--0.664091857093
+--Epoch--256
+Training MSE--0.523187857096
+--Epoch--257
+Training MSE--0.551126424382
+--Epoch--258
+Training MSE--0.35776983971
+--Epoch--259
+Training MSE--0.665095062834
+--Epoch--260
+Training MSE--0.824374874875
+--Epoch--261
+Training MSE--0.622919575136
+--Epoch--262
+Training MSE--0.703788160221
+--Epoch--263
+Training MSE--0.467908330448
+--Epoch--264
+Training MSE--0.468260728449
+--Epoch--265
+Training MSE--0.679351583659
+--Epoch--266
+Training MSE--0.763588065338
+--Epoch--267
+Training MSE--0.617041234265
+--Epoch--268
+Training MSE--0.611920603213
+--Epoch--269
+Training MSE--0.722893872902
+--Epoch--270
+Training MSE--0.969147241831
+--Epoch--271
+Training MSE--0.486851026958
+--Epoch--272
+Training MSE--0.572317330568
+--Epoch--273
+Training MSE--0.568157001071
+--Epoch--274
+Training MSE--0.716607250763
+--Epoch--275
+Training MSE--0.66273606628
+--Epoch--276
+Training MSE--0.660734558731
+--Epoch--277
+Training MSE--0.517222937602
+--Epoch--278
+Training MSE--1.01100824795
+--Epoch--279
+Training MSE--0.632333186586
+--Epoch--280
+Training MSE--0.902088252433
+--Epoch--281
+Training MSE--0.425027881146
+--Epoch--282
+Training MSE--0.72384918615
+--Epoch--283
+Training MSE--0.670671621054
+--Epoch--284
+Training MSE--0.654990175946
+--Epoch--285
+Training MSE--0.459352704696
+--Epoch--286
+Training MSE--0.428773332542
+--Epoch--287
+Training MSE--0.503466228526
+--Epoch--288
+Training MSE--0.623999562702
+--Epoch--289
+Training MSE--0.501240959307
+--Epoch--290
+Training MSE--0.584230847008
+--Epoch--291
+Training MSE--0.941978589539
+--Epoch--292
+Training MSE--0.471457214871
+--Epoch--293
+Training MSE--0.397399413299
+--Epoch--294
+Training MSE--0.589377211936
+--Epoch--295
+Training MSE--0.961995868132
+--Epoch--296
+Training MSE--0.570217959456
+--Epoch--297
+Training MSE--0.58783304552
+--Epoch--298
+Training MSE--0.621584690177
+--Epoch--299
+Training MSE--0.403969545578
+--Epoch--300
+Training MSE--0.517206802967
+--Epoch--301
+Training MSE--0.538251619755
+--Epoch--302
+Training MSE--0.629242185236
+--Epoch--303
+Training MSE--0.516233524612
+--Epoch--304
+Training MSE--0.620483264631
+--Epoch--305
+Training MSE--0.961472284075
+--Epoch--306
+Training MSE--0.67579944075
+--Epoch--307
+Training MSE--0.678401737621
+--Epoch--308
+Training MSE--0.848156703949
+--Epoch--309
+Training MSE--0.517188350965
+--Epoch--310
+Training MSE--0.674030511667
+--Epoch--311
+Training MSE--1.10223618568
+--Epoch--312
+Training MSE--0.600471105507
+--Epoch--313
+Training MSE--0.316248693994
+--Epoch--314
+Training MSE--0.538656943783
+--Epoch--315
+Training MSE--0.471063152363
+--Epoch--316
+Training MSE--0.483863830823
+--Epoch--317
+Training MSE--0.567314139465
+--Epoch--318
+Training MSE--0.766455833258
+--Epoch--319
+Training MSE--0.384762375983
+--Epoch--320
+Training MSE--0.358570485043
+--Epoch--321
+Training MSE--0.656380704996
+--Epoch--322
+Training MSE--0.861963678376
+--Epoch--323
+Training MSE--0.90074283854
+--Epoch--324
+Training MSE--0.427397426439
+--Epoch--325
+Training MSE--0.733377630765
+--Epoch--326
+Training MSE--0.443197033911
+--Epoch--327
+Training MSE--0.458841789623
+--Epoch--328
+Training MSE--0.582898089082
+--Epoch--329
+Training MSE--0.502403329326
+--Epoch--330
+Training MSE--0.705648035919
+--Epoch--331
+Training MSE--0.517951768484
+--Epoch--332
+Training MSE--0.668779696972
+--Epoch--333
+Training MSE--0.496338918318
+--Epoch--334
+Training MSE--0.519190888406
+--Epoch--335
+Training MSE--1.18839549387
+--Epoch--336
+Training MSE--0.513911370141
+--Epoch--337
+Training MSE--0.463716407299
+--Epoch--338
+Training MSE--0.815864637475
+--Epoch--339
+Training MSE--0.664482466275
+--Epoch--340
+Training MSE--0.717823869364
+--Epoch--341
+Training MSE--0.564842805874
+--Epoch--342
+Training MSE--0.602125026118
+--Epoch--343
+Training MSE--0.429159651937
+--Epoch--344
+Training MSE--0.611314867745
+--Epoch--345
+Training MSE--0.443467502576
+--Epoch--346
+Training MSE--0.717819537661
+--Epoch--347
+Training MSE--0.576645151018
+--Epoch--348
+Training MSE--0.423282602034
+--Epoch--349
+Training MSE--0.75145929378
+--Epoch--350
+Training MSE--0.66014007197
+--Epoch--351
+Training MSE--0.875874419127
+--Epoch--352
+Training MSE--0.456261864072
+--Epoch--353
+Training MSE--0.500191277177
+--Epoch--354
+Training MSE--0.66766952217
+--Epoch--355
+Training MSE--0.564372640388
+--Epoch--356
+Training MSE--0.53915788422
+--Epoch--357
+Training MSE--0.770752167821
+--Epoch--358
+Training MSE--0.655409772721
+--Epoch--359
+Training MSE--0.736185037105
+--Epoch--360
+Training MSE--0.468781260445
+--Epoch--361
+Training MSE--0.575522671804
+--Epoch--362
+Training MSE--0.536271586688
+--Epoch--363
+Training MSE--0.771776005098
+--Epoch--364
+Training MSE--0.470774405932
+--Epoch--365
+Training MSE--0.412988185993
+--Epoch--366
+Training MSE--0.742654418224
+--Epoch--367
+Training MSE--0.605081964938
+--Epoch--368
+Training MSE--0.50508643702
+--Epoch--369
+Training MSE--0.596140439103
+--Epoch--370
+Training MSE--0.375656639476
+--Epoch--371
+Training MSE--0.667537311534
+--Epoch--372
+Training MSE--0.591673578262
+--Epoch--373
+Training MSE--0.404494958875
+--Epoch--374
+Training MSE--0.625413587688
+--Epoch--375
+Training MSE--0.477643054293
+--Epoch--376
+Training MSE--0.80640706575
+--Epoch--377
+Training MSE--0.840968669998
+--Epoch--378
+Training MSE--0.365687852018
+--Epoch--379
+Training MSE--0.382708064009
+--Epoch--380
+Training MSE--0.976791317642
+--Epoch--381
+Training MSE--0.829198710046
+--Epoch--382
+Training MSE--0.836755349408
+--Epoch--383
+Training MSE--0.529082429781
+--Epoch--384
+Training MSE--1.12174429794
+--Epoch--385
+Training MSE--0.726000535151
+--Epoch--386
+Training MSE--0.752976597304
+--Epoch--387
+Training MSE--0.516360077397
+--Epoch--388
+Training MSE--0.418238842299
+--Epoch--389
+Training MSE--0.403322690539
+--Epoch--390
+Training MSE--0.812755900225
+--Epoch--391
+Training MSE--0.414425693
+--Epoch--392
+Training MSE--0.677123063977
+--Epoch--393
+Training MSE--0.68818548329
+--Epoch--394
+Training MSE--0.698658054979
+--Epoch--395
+Training MSE--0.415763741127
+--Epoch--396
+Training MSE--0.45763564605
+--Epoch--397
+Training MSE--0.566016618403
+--Epoch--398
+Training MSE--0.767535324548
+--Epoch--399
+Training MSE--0.676883243276
+--Epoch--400
+Training MSE--0.603060863844
+--Epoch--401
+Training MSE--0.602038642849
+--Epoch--402
+Training MSE--0.599709902568
+--Epoch--403
+Training MSE--0.363439060151
+--Epoch--404
+Training MSE--0.43132419365
+--Epoch--405
+Training MSE--0.961578583725
+--Epoch--406
+Training MSE--0.687636898584
+--Epoch--407
+Training MSE--0.580729282356
+--Epoch--408
+Training MSE--0.747021603981
+--Epoch--409
+Training MSE--0.56697486773
+--Epoch--410
+Training MSE--0.506096332253
+--Epoch--411
+Training MSE--0.366890616297
+--Epoch--412
+Training MSE--0.441587712456
+--Epoch--413
+Training MSE--0.776760624144
+--Epoch--414
+Training MSE--0.50177739412
+--Epoch--415
+Training MSE--0.572683217993
+--Epoch--416
+Training MSE--0.558771562528
+--Epoch--417
+Training MSE--0.883168842428
+--Epoch--418
+Training MSE--0.86801575968
+--Epoch--419
+Training MSE--0.561769222771
+--Epoch--420
+Training MSE--0.551754173783
+--Epoch--421
+Training MSE--0.359889040652
+--Epoch--422
+Training MSE--0.509217383644
+--Epoch--423
+Training MSE--0.565729342369
+--Epoch--424
+Training MSE--0.50744491993
+--Epoch--425
+Training MSE--0.597868918667
+--Epoch--426
+Training MSE--0.561203027873
+--Epoch--427
+Training MSE--0.702542420838
+--Epoch--428
+Training MSE--0.739888858909
+--Epoch--429
+Training MSE--0.320307627726
+--Epoch--430
+Training MSE--0.665874711398
+--Epoch--431
+Training MSE--0.665288644232
+--Epoch--432
+Training MSE--0.702978194102
+--Epoch--433
+Training MSE--0.496921781371
+--Epoch--434
+Training MSE--0.783424520575
+--Epoch--435
+Training MSE--0.445385254865
+--Epoch--436
+Training MSE--0.754960893529
+--Epoch--437
+Training MSE--0.526549588032
+--Epoch--438
+Training MSE--0.587717139324
+--Epoch--439
+Training MSE--0.622736665712
+--Epoch--440
+Training MSE--0.693186787952
+--Epoch--441
+Training MSE--0.726892656213
+--Epoch--442
+Training MSE--0.708715011442
+--Epoch--443
+Training MSE--0.367442726322
+--Epoch--444
+Training MSE--0.776627616442
+--Epoch--445
+Training MSE--0.612083590993
+--Epoch--446
+Training MSE--0.482007706669
+--Epoch--447
+Training MSE--0.695731188564
+--Epoch--448
+Training MSE--0.402645951342
+--Epoch--449
+Training MSE--0.817943472423
+--Epoch--450
+Training MSE--0.975317775501
+--Epoch--451
+Training MSE--0.788151375394
+--Epoch--452
+Training MSE--0.695736550586
+--Epoch--453
+Training MSE--0.761455134875
+--Epoch--454
+Training MSE--0.808181982993
+--Epoch--455
+Training MSE--0.720688489933
+--Epoch--456
+Training MSE--0.524545191379
+--Epoch--457
+Training MSE--0.507685425552
+--Epoch--458
+Training MSE--0.567654045845
+--Epoch--459
+Training MSE--0.70380783818
+--Epoch--460
+Training MSE--0.260116264641
+--Epoch--461
+Training MSE--0.494618971588
+--Epoch--462
+Training MSE--0.709495187609
+--Epoch--463
+Training MSE--0.563096178066
+--Epoch--464
+Training MSE--0.671651966841
+--Epoch--465
+Training MSE--0.364843316774
+--Epoch--466
+Training MSE--0.627581064902
+--Epoch--467
+Training MSE--0.424744312745
+--Epoch--468
+Training MSE--0.792476354149
+--Epoch--469
+Training MSE--0.757613160574
+--Epoch--470
+Training MSE--0.559125799167
+--Epoch--471
+Training MSE--0.783745692631
+--Epoch--472
+Training MSE--0.829362689188
+--Epoch--473
+Training MSE--0.599004605396
+--Epoch--474
+Training MSE--0.414532876576
+--Epoch--475
+Training MSE--0.379301225044
+--Epoch--476
+Training MSE--0.813382181201
+--Epoch--477
+Training MSE--0.806519033099
+--Epoch--478
+Training MSE--0.601991020602
+--Epoch--479
+Training MSE--0.542915052048
+--Epoch--480
+Training MSE--0.474434808577
+--Epoch--481
+Training MSE--0.703249732844
+--Epoch--482
+Training MSE--0.529212964408
+--Epoch--483
+Training MSE--0.300869590924
+--Epoch--484
+Training MSE--0.723888614809
+--Epoch--485
+Training MSE--0.749069025179
+--Epoch--486
+Training MSE--0.662500919201
+--Epoch--487
+Training MSE--0.931475766987
+--Epoch--488
+Training MSE--0.406820963823
+--Epoch--489
+Training MSE--0.794989049126
+--Epoch--490
+Training MSE--0.613120047748
+--Epoch--491
+Training MSE--0.998135489413
+--Epoch--492
+Training MSE--0.498289553965
+--Epoch--493
+Training MSE--0.913448360694
+--Epoch--494
+Training MSE--0.793968582125
+--Epoch--495
+Training MSE--0.500425556531
+--Epoch--496
+Training MSE--0.710270822455
+--Epoch--497
+Training MSE--0.594267702625
+--Epoch--498
+Training MSE--0.622489962614
+--Epoch--499
+Training MSE--0.694380179162
+--Epoch--500
+Training MSE--0.672602108679
+--test--RMSE---0.641280072403

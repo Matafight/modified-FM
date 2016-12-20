@@ -76,6 +76,9 @@ cdef class FM_fast(object):
 
     cdef np.ndarray grad_w
     cdef np.ndarray grad_v
+    cdef np.ndarray U_v
+    cdef np.ndarray U_w
+    cdef int T_rda # global T for RDA algorithm
     cdef str dataname
     cdef DOUBLE sumloss
     cdef int count # what for?
@@ -135,8 +138,9 @@ cdef class FM_fast(object):
         self.dataname = dataname
         self.grad_w = np.zeros(self.num_attributes)
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
-        #if(verbose==False):
-
+        self.U_w = np.zeros(self.num_attributes)
+        self.U_v = np.zeros((self.num_factors,self.num_attributes))
+        self.T_rda = 1
         self.x_test = x_test
         self.y_test = y_test
 
@@ -210,11 +214,15 @@ cdef class FM_fast(object):
         cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] v = self.v
         cdef np.ndarray[DOUBLE, ndim = 1,mode='c'] grad_w = self.grad_w
         cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] grad_v = self.grad_v
+        cdef np.ndarray[DOUBLE,ndim = 1,mode='c'] U_w = self.U_w
+        cdef np.ndarray[DOUBLE,ndim=2,mode='c'] U_v = self.U_v
+        cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] U_comb = np.zeros((self.num_factors+1,self.num_attributes))
+        cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] C_comb = np.zeros((self.num_factors+1,self.num_attributes))
         cdef DOUBLE learning_rate = self.learning_rate
         cdef DOUBLE reg_0 = self.reg_0
         cdef DOUBLE reg_1 = self.reg_1
         cdef DOUBLE reg_2 = self.reg_2
-
+        cdef int t_rda = self.T_rda
         # have already calculate sum_
         p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
 
@@ -228,16 +236,16 @@ cdef class FM_fast(object):
 
         self.sumloss += _squared_loss(p,y)
         #update global bias
-        if self.k0 > 0:
-            grad_0 = mult
-            w0 -= learning_rate*(grad_0 + 2*reg_0*w0)
+        #if self.k0 > 0:
+        #    grad_0 = mult
+        #    w0 -= learning_rate*(grad_0 + 2*reg_0*w0)
 
         if self.k1 > 0:
             for i in range(xnnz):
                 feature = x_ind_ptr[i]
                 grad_w[feature]= mult*x_data_ptr[i]
+                U_w[feature] = ((t_rda-1)/t_rda) *U_w[feature] + (1/t_rda)*grad_w[feature]
 
-                w[feature] -= learning_rate*(grad_w[feature]+ 2*reg_1*w[feature])
 
         #update feature factor vectors
 
@@ -245,10 +253,22 @@ cdef class FM_fast(object):
             for i in range(xnnz):
                 feature = x_ind_ptr[i]
                 grad_v[f,feature] = mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature])
-                v[f,feature] -= learning_rate*(grad_v[f,feature] + 2*reg_2*v[f,feature])
+                U_v[f,feature] = ((t_rda-1)/t_rda)*U_v[f,feature] + (1/t_rda)*grad_v[f,feature]
 
+        # 下面计算下一次迭代的值
+        lambda_1 = self.reg_1
+        lambda_2 = self.reg_2
+        gamma = 0.01
 
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            U_comb[:,feature] = np.concatenate(([U_w[feature]],U_v[:,feature]))
+            for f in range(self.num_factors+1):
+                C_comb[f,feature] = max(0,np.abs(U_comb[f,feature])-lambda_2)*(U_comb[f,feature]/np.abs(U_comb[f,feature]))
+            w[feature] = -1*(np.sqrt(t_rda)/gamma)*max(0,1-(lambda_1/np.linalg.norm(C_comb[:,feature])))*C_comb[0,feature]
+            v[:,feature] = -1*(np.sqrt(t_rda)/gamma)*max(0,1-(lambda_1/np.linalg.norm(C_comb[:,feature])))*C_comb[1:,feature]
 
+        t_rda += 1
         #pass updated vars to other functions
 
         self.learning_rate = learning_rate
@@ -259,6 +279,7 @@ cdef class FM_fast(object):
         self.grad_v = grad_v
         self.t +=1
         self.count +=1
+        self.T_rda = t_rda
 
 
     def fit(self, CSRDataset dataset, CSRDataset validation_dataset):
@@ -299,9 +320,6 @@ cdef class FM_fast(object):
 
             for i in selected_list:
                 dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
-
-                #for i in range(n_samples):
-                #dataset.next(&x_data_ptr, & x_ind_ptr, &xnnz,&y,&sample_weight)
                 self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
 
                 if(epoch > 0):
@@ -310,6 +328,7 @@ cdef class FM_fast(object):
             if self.verbose > 0:
                 strtemp = "Training MSE--"+str(self.sumloss/self.count)+"\n"
                 print(strtemp)
+                #print(str(self.sumloss))
                 fh.write(strtemp)
                 #print ("Training %s:%.5f"%("MSE",(self.sumloss/self.count)))
                 if(itercount % 10 ==0):

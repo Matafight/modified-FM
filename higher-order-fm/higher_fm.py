@@ -18,8 +18,9 @@ class FM():
         self.reg_1 = reg_1
         self.reg_2 = reg_2
         # 设定learning_rate
-        self.learning_rate = 0.01
-
+        self.learning_rate = 1
+        self.t = 1
+        self.t0 = 1
         self.sum_loss = 0.0
         #一阶梯度
         self.grad_w = np.zeros(num_attributes)
@@ -37,7 +38,7 @@ class FM():
         self.grad_DP_table_sec[:,2,num_attributes]  = 1
         self.grad_DP_table_thi[:,num_order,num_attributes] = 1
 
-        self.t = 0
+
         self.count = 0
         self.n_iter = n_iter
     def _predict_instance(self,x):
@@ -102,47 +103,70 @@ class FM():
         grad_DP_table_thi[:,self.num_order,num_attributes] = 1
         v_p = self.v_p
         v_q = self.v_q
-        x_vector = np.zeros(d)
+        '''x_vector = np.zeros(d)
         for i in range(x.nnz):
             feature = x.indices
             x_vector[feature] = x.data[i]
-        x=x_vector
+        x=x_vector'''
         # step 1 : 二阶
         for i in range(self.num_factors):
             for t in range(2,0,-1):
-                for j in range(d,t-1,-1):
+                '''for j in range(d,t-1,-1):
                     if( j < d and t < 2):
                         grad_DP_table_sec[i,t,j] = grad_DP_table_sec[i,t+1,j+1]*v_p[j+1,i]*x[j]
                     if(j < d):
-                        grad_DP_table_sec[i,t,j] = grad_DP_table_sec[i,t,j] + grad_DP_table_sec[i,t,j+1]
+                        grad_DP_table_sec[i,t,j] = grad_DP_table_sec[i,t,j] + grad_DP_table_sec[i,t,j+1]'''
 
-                    #lastnnz = d
-                    #for k in range(x.nnz-1,-1,-1)
-                        #feature = x.indices[k]
-                        #if(feature+1 < d and t < 2):
-                            #grad_DP_table_sec[i,t,feature+2:lastnnz] = grad_DP_table_sec[i,t,lastnnz]
-                            #grad_DP_table_sec[i,t,feature+1] = grad_DP_table_sec[i,t+1,feature+2]*v_p[feature+2,i]*x.data[k]
-                        #if(feature+1 < d):
-                            #grad_DP_table_sec[i,t,feature+2:lastnnz] = grad_DP_table_sec[i,t,lastnnz]
-                            #grad_DP_table_sec[i,t,feature+1] = grad_DP_table_sec[i,t,feature+1] + grad_DP_table_sec[i,t,feature+2]
-                            #lastnnz = feature+1
+                lastnnz = d
+                for k in range(x.nnz-1,-1,-1):
+                    feature = x.indices[k]
+                    if(feature+1 < d and t < 2):
+                        grad_DP_table_sec[i,t,feature+1:lastnnz] = grad_DP_table_sec[i,t,lastnnz]
+                        grad_DP_table_sec[i,t,feature] = grad_DP_table_sec[i,t+1,feature+1]*v_p[feature+1,i]*x.data[k]
+                    if(feature+1 < d):
+                        grad_DP_table_sec[i,t,feature+1:lastnnz] = grad_DP_table_sec[i,t,lastnnz]
+                        grad_DP_table_sec[i,t,feature] = grad_DP_table_sec[i,t,feature] + grad_DP_table_sec[i,t,feature+1]
+                        lastnnz = feature
+                grad_DP_table_sec[i,t,0:lastnnz] = grad_DP_table_sec[i,t,lastnnz]
+
         for i in range(self.num_factors):
-            for j in range(1,d+1):
+            '''for j in range(1,d+1):
                 for t in range(1,2+1):
-                    grad_v_p[j,i] += grad_DP_table_sec[i,t,j] * DP_table_sec[i,t-1,j-1]*x[j-1]
+                    grad_v_p[j,i] += grad_DP_table_sec[i,t,j] * DP_table_sec[i,t-1,j-1]*x[j-1]'''
+            for k in range(x.nnz):
+                feature = x.indices[k]
+                for t in range(1,2+1):
+                    grad_v_p[feature+1,i] += grad_DP_table_sec[i,t,feature+1] *DP_table_sec[i,t-1,feature]*x.data[k]
 
         #step 2:三阶
         for i in range(self.num_factors):
             for t in range(3,0,-1):
-                for j in range(d,t-1,-1):
+                '''for j in range(d,t-1,-1):
                     if(j<d and t<3):
                         grad_DP_table_thi[i,t,j] = grad_DP_table_thi[i,t+1,j+1] * v_q[j+1,i] * x[j]
                     if(j < d):
-                        grad_DP_table_thi[i,t,j] += grad_DP_table_thi[i,t,j+1]
+                        grad_DP_table_thi[i,t,j] += grad_DP_table_thi[i,t,j+1]'''
+                lastnnz = d
+                for k in range(x.nnz-1,-1,-1):
+                    feature = x.indices[k]
+                    if(feature+1 < d and t < 3):
+                        grad_DP_table_thi[i,t,feature+1:lastnnz] = grad_DP_table_thi[i,t,lastnnz]
+                        grad_DP_table_thi[i,t,feature] = grad_DP_table_thi[i,t+1,feature+1]*v_q[feature+1,i]*x.data[k]
+                    if(feature+1 < d):
+                        grad_DP_table_thi[i,t,feature+1:lastnnz] = grad_DP_table_thi[i,t,lastnnz]
+                        grad_DP_table_thi[i,t,feature] = grad_DP_table_thi[i,t,feature] + grad_DP_table_thi[i,t,feature+1]
+                        lastnnz = feature
+                grad_DP_table_thi[i,t,0:lastnnz] = grad_DP_table_thi[i,t,lastnnz]
+
         for i in range(self.num_factors):
-            for j in range(1,d+1):
+            '''for j in range(1,d+1):
                 for t in range(1,3+1):
-                    grad_v_q[j,i] += grad_DP_table_thi[i,t,j] * DP_table_thi[i,t-1,j-1]*x[j-1]
+                    grad_v_q[j,i] += grad_DP_table_thi[i,t,j] * DP_table_thi[i,t-1,j-1]*x[j-1]'''
+            for k in range(x.nnz):
+                feature = x.indices[k]
+                for t in range(1,3+1):
+                    grad_v_q[feature+1,i] += grad_DP_table_thi[i,t,feature+1] *DP_table_thi[i,t-1,feature]*x.data[k]
+
         self.grad_v_p = grad_v_p
         self.grad_v_q = grad_v_q
 
@@ -165,7 +189,7 @@ class FM():
         mult = 2*(p-y)
 
         #set learning schedule
-        self.learning_rate = 0.1
+        self.learning_rate = 1.0/(self.t + self.t0)
         self.sum_loss += _squared_loss(y,p)
 
         #bias
@@ -206,7 +230,7 @@ class FM():
             print("-----EPOCH----:"+str(epoch))
             self.sum_loss = 0.0
             self.count = 0
-            n_sample_sele = 20
+            n_sample_sele = 10
             selected_list = random.sample(range(n_samples),n_sample_sele)
 
             for item in selected_list:

@@ -19,8 +19,8 @@ def loadData(filename):
     return (data,np.array(y),users,items)
 
 if __name__=='__main__':
-    train_data_name = 'u4.base'
-    test_data_name = 'u4.test'
+    train_data_name = 'u2.base'
+    test_data_name = 'u2.test'
     (train_data,train_label,train_users,train_items)= loadData('../data/'+train_data_name)
     (test_data,test_label,test_users,test_items)=loadData('../data/'+test_data_name)
     v = DictVectorizer()
@@ -28,10 +28,10 @@ if __name__=='__main__':
     x_test = v.fit_transform(test_data)
 
     num_attributes = x_train.shape[1]
-    num_factors = 10
+    num_factors = 20
     #初始化w,v_p,v_q
     w = np.zeros(num_attributes)
     v_p = np.zeros((num_attributes+1,num_factors+1))
     v_q = np.zeros((num_attributes+1,num_factors+1))
-    myfm = FM(w=w,v_p=v_p,v_q=v_q,n_iter = 100,num_factors=num_factors,num_attributes = num_attributes,reg_1=0.01,reg_2=0.01)
+    myfm = FM(w=w,v_p=v_p,v_q=v_q,n_iter = 500,num_factors=num_factors,num_attributes = num_attributes,reg_1=0.001,reg_2=0.001)
     myfm.fit(x_train,train_label,x_test,test_label)

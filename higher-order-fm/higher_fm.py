@@ -2,7 +2,8 @@
 import numpy as np
 from sklearn.feature_extraction import DictVectorizer
 import random
-#
+import matplotlib.pyplot as plt#
+
 class FM():
 
     def __init__(self,w0=1, w=np.zeros(10), v_p=np.zeros((10,10)), v_q = np.zeros((10,10)), num_order = 3, n_iter=100, num_factors=10, num_attributes=10, dataname="unknown", reg_1=0.01,reg_2=0.01):
@@ -226,6 +227,8 @@ class FM():
 
         n_samples = train_data.shape[1]
         itercount = 0
+        training_errors = []
+        testing_errors = []
         for epoch in range(self.n_iter):
             print("-----EPOCH----:"+str(epoch))
             self.sum_loss = 0.0
@@ -235,14 +238,23 @@ class FM():
 
             for item in selected_list:
                 self._sgd_theta_step(train_data[item,:],train_y[item])
-
-            print("Training--error: "+str(self.sum_loss/self.count))
+            training_errors.append(self.sum_loss/self.count)
+            #print("Training--error: "+str(self.sum_loss/self.count))
             if(itercount%10==0):
                 pre_y = self._predict(test_data)
                 test_error = 0.5*np.sum((pre_y-test_y)**2)/test_y.shape[0]
-                print("=====Test---error: "+str(test_error))
+                testing_errors.append(test_error)
+                #print("=====Test---error: "+str(test_error))
             itercount +=1
+        draw_line(training_errors,testing_errors)
 
+def draw_line(training_errors,testing_errors):
+    lentrain = len(training_errors)
+    lentest  = len(testing_errors)
+    a,subp = plt.subplots(2)
+    subp[0].plot(range(lentrain),training_errors)
+    subp[1].plot(range(lentest),testing_errors)
+    plt.show()
 
 
 

@@ -78,12 +78,14 @@ cdef class FM_fast(object):
     cdef np.ndarray grad_v
     cdef np.ndarray U_v
     cdef np.ndarray U_w
-    cdef int T_rda # global T for RDA algorithm
+    cdef DOUBLE U_w0
+    cdef DOUBLE T_rda # global T for RDA algorithm
     cdef str dataname
     cdef DOUBLE sumloss
     cdef int count # what for?
     cdef CSRDataset x_test
     cdef np.ndarray y_test
+    cdef DOUBLE gamma
     def __init__(self,
                   np.ndarray[DOUBLE,ndim=1,mode='c'] w,
                   np.ndarray[DOUBLE, ndim=2,mode='c'] v,
@@ -107,6 +109,7 @@ cdef class FM_fast(object):
                   dataname,
                   double reg_1,
                   double reg_2,
+                  double gamma,
                   CSRDataset x_test,
                   np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test):
         self.w0 = w0
@@ -140,7 +143,9 @@ cdef class FM_fast(object):
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
         self.U_w = np.zeros(self.num_attributes)
         self.U_v = np.zeros((self.num_factors,self.num_attributes))
-        self.T_rda = 1
+        self.U_w0 = 1
+        self.T_rda = 1.0
+        self.gamma = gamma
         self.x_test = x_test
         self.y_test = y_test
 
@@ -210,6 +215,7 @@ cdef class FM_fast(object):
         cdef DOUBLE grad_0
 
         cdef DOUBLE w0 = self.w0
+        cdef DOUBLE U_w0 = self.U_w0
         cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
         cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] v = self.v
         cdef np.ndarray[DOUBLE, ndim = 1,mode='c'] grad_w = self.grad_w
@@ -235,9 +241,10 @@ cdef class FM_fast(object):
         self.learning_rate = 1.0/(self.t + self.t0)
 
         self.sumloss += _squared_loss(p,y)
-        gamma = 1
+        gamma = self.gamma
         #update global bias
-        w0 = -1*np.sqrt(t_rda)/gamma*w0
+        U_w0 = ((t_rda-1)/t_rda)*U_w0 + (1/t_rda)*mult
+        w0 = -1*np.sqrt(t_rda)/gamma*U_w0
         if self.k1 > 0:
             for i in range(xnnz):
                 feature = x_ind_ptr[i]
@@ -248,7 +255,7 @@ cdef class FM_fast(object):
             for i in range(xnnz):
                 feature = x_ind_ptr[i]
                 grad_v[f,feature] = mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature])
-                U_v[f,feature] = ((t_rda-1)/t_rda)*U_v[f,feature] + (1/t_rda)*grad_v[f,feature]
+                U_v[f,feature] = ((t_rda-1.0)/t_rda)*U_v[f,feature] + (1.0/t_rda)*grad_v[f,feature]
 
 
         # 下面计算下一次迭代的值
@@ -277,6 +284,7 @@ cdef class FM_fast(object):
         self.v = v
         self.U_w = U_w
         self.U_v = U_v
+        self.U_w0 = U_w0
         self.grad_w = grad_w
         self.grad_v = grad_v
         self.t +=1

@@ -415,8 +415,8 @@ cdef class FM_fast(object):
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE validation_sample_weight = 1.0
         cdef int itercount=0
-        fh = open('./results/'+filename,'w')
-        fh_test = open('./results/'+'iter_test_error'+filename,'w')
+        fh = open('./results/train_error_'+filename+'.txt','w')
+        fh_test = open('./results/test_error_'+filename+'.txt','w')
 
         for epoch in range(self.n_iter):
 
@@ -429,14 +429,9 @@ cdef class FM_fast(object):
             # I want to randomly select a small batch of all training samples for training in each iteration
             num_sample_iter = 20
             selected_list = random.sample(range(n_samples),num_sample_iter)
-            #for i in range(n_samples):
             for i in selected_list:
-                #dataset.next( & x_data_ptr, & x_ind_ptr, & xnnz, & y,
-                  #           & sample_weight)
                 dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
-
                 self._sgd_theta_step(x_data_ptr, x_ind_ptr, xnnz, y)
-
                 if epoch > 0:
                     validation_dataset.next( & validation_x_data_ptr, & validation_x_ind_ptr,
                                              & validation_xnnz, & validation_y,
@@ -446,17 +441,12 @@ cdef class FM_fast(object):
             if self.verbose > 0:
                 error_type = "MSE" if self.task == REGRESSION else "log loss"
                 print "Training %s: %.5f" % (error_type, (self.sumloss / self.count))
+                fh.write(str(self.sumloss/self.count)+'\n')
                 if(itercount%10==0):
                     iter_error = 0.0
                     pre_test = self._predict(self.x_test)
-                    #the shape of pre_test and y_test may be different , which induce the increasing test_error
-                    print("=====result---------shape-----is:  ")
-                    print(pre_test.shape)
-                    print('y=====shape======is :')
-                    print(self.y_test.shape[1])
                     iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
-                    print("=======test_error====="+str(iter_error))
-                    fh_test.write("iter:" + str(itercount) + "  test_error:  "+str(iter_error) + '\n')
+                    fh_test.write(str(iter_error)+'\n')
             itercount +=1
 
 cdef inline double max(double a, double b):

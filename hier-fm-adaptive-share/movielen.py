@@ -4,8 +4,8 @@ from sklearn.feature_extraction import DictVectorizer
 import my_pyfmlib as pylibfm
 
 
-train_data_name = 'u4.base'
-test_data_name = 'u4.test'
+train_data_name = 'u2.base'
+test_data_name = 'u2.test'
 def loadData(filename):
     data=[]
     y = []

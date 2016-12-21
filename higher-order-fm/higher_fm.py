@@ -229,6 +229,8 @@ class FM():
         itercount = 0
         training_errors = []
         testing_errors = []
+        train_ret_name = './results/train_error_'+self.dataname+'.txt'
+        test_ret_name = './results/test_error_'+self.dataname+'.txt'
         for epoch in range(self.n_iter):
             print("-----EPOCH----:"+str(epoch))
             self.sum_loss = 0.0
@@ -246,14 +248,18 @@ class FM():
                 testing_errors.append(test_error)
                 #print("=====Test---error: "+str(test_error))
             itercount +=1
-        draw_line(training_errors,testing_errors)
+        draw_line(training_errors,testing_errors,self.dataname)
+        np.savetxt(train_ret_name,np.array(training_errors),fmt = '%10.5f')
+        np.savetxt(test_ret_name,np.array(testing_errors),fmt = '%10.5f')
 
-def draw_line(training_errors,testing_errors):
+def draw_line(training_errors,testing_errors,dataname):
     lentrain = len(training_errors)
     lentest  = len(testing_errors)
     a,subp = plt.subplots(2)
     subp[0].plot(range(lentrain),training_errors)
     subp[1].plot(range(lentest),testing_errors)
+    dataname = './results/figures/'+dataname
+    plt.savefig(dataname+'.png')
     plt.show()
 
 

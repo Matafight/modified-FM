@@ -311,14 +311,12 @@ cdef class FM_fast(object):
         cdef unsigned int i =0
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE validation_sample_weight=1.0
-        fh = open('./results/'+self.dataname,'w')
-        fhtest = open('./results/'+'iter_test_error_'+self.dataname,'w')
+        fh = open('./results/train_error_'+self.dataname+'.txt','w')
+        fhtest = open('./results/test_error_'+self.dataname+'.txt','w')
         for epoch in range(self.n_iter):
             if self.verbose >0 :
                 strtemp = "--Epoch--"+str(epoch+1)+"\n"
                 print(strtemp)
-                fh.write(strtemp)
-                #print("--Epoch %d" %(epoch + 1))
             self.count = 0
             self.sumloss = 0
 
@@ -338,15 +336,13 @@ cdef class FM_fast(object):
             if self.verbose > 0:
                 strtemp = "Training MSE--"+str(self.sumloss/self.count)+"\n"
                 print(strtemp)
-                #print(str(self.sumloss))
-                fh.write(strtemp)
-                #print ("Training %s:%.5f"%("MSE",(self.sumloss/self.count)))
+                fh.write(str(self.sumloss/self.count)+'\n')
                 if(itercount % 10 ==0):
                     iter_error = 0.0
                     pre_test = self._predict(self.x_test)
                     iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
                     print("=======test_error===="+str(iter_error))
-                    fhtest.write("iter: "+str(itercount)+" test_error: "+str(iter_error)+'\n')
+                    fhtest.write(str(iter_error)+'\n')
             itercount +=1
         fh.close()
         fhtest.close()

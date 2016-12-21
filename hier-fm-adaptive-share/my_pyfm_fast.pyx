@@ -418,8 +418,8 @@ cdef class FM_fast(object):
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE validation_sample_weight=1.0
 
-        filehandler = open('./results/'+filename,'w')
-        fhtest = open('./results/'+'iter_test_error_'+filename,'w')
+        filehandler = open('./results/train_error_'+filename+'.txt','w')
+        fhtest = open('./results/test_error_'+filename+'.txt','w')
         for epoch in range(self.n_iter):
             if self.verbose >0 :
                 strtemp = "--Epoch  "+str(epoch+1)+'\n'
@@ -434,10 +434,7 @@ cdef class FM_fast(object):
 
             num_sample_iter = 20
             selected_list = random.sample(range(n_samples),num_sample_iter)
-            #for i in range(n_samples):
             for i in selected_list:
-                #dataset.next( & x_data_ptr, & x_ind_ptr, & xnnz, & y,
-                  #           & sample_weight)
                 dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
                 self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
 
@@ -449,15 +446,14 @@ cdef class FM_fast(object):
             if self.verbose > 0:
 
                 strtemp = "Training MSE "+str(self.sumloss/self.count)+"\n"
-                print(strtemp)
-                filehandler.write(strtemp)
-                #print ("Training %s:%.5f"%("MSE",(self.sumloss/self.count)))
+                filehandler.write(str(self.sumloss/self.count)+'\n')
                 if(itercount % 10 ==0):
                     iter_error = 0.0
                     pre_test = self._predict(self.x_test)
                     iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
                     print("=======test_error===="+str(iter_error))
                     fhtest.write(" iter: "+str(itercount)+" test_error: "+str(iter_error)+'\n')
+                    fhtest.write(str(iter_error)+'\n')
             itercount +=1
         filehandler.close()
         fhtest.close()

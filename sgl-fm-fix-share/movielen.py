@@ -19,8 +19,8 @@ def loadData(filename):
     return (data,np.array(y),users,items)
 
 if __name__=='__main__':
-    train_data_name = 'u4.base'
-    test_data_name = 'u4.test'
+    train_data_name = 'u2.base'
+    test_data_name = 'u2.test'
     (train_data,train_label,train_users,train_items)= loadData('../data/'+train_data_name)
     (test_data,test_label,test_users,test_items)=loadData('../data/'+test_data_name)
     v = DictVectorizer()

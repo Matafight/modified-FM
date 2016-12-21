@@ -33,5 +33,5 @@ if __name__=='__main__':
     w = np.zeros(num_attributes)
     v_p = np.zeros((num_attributes+1,num_factors+1))
     v_q = np.zeros((num_attributes+1,num_factors+1))
-    myfm = FM(w=w,v_p=v_p,v_q=v_q,n_iter = 500,num_factors=num_factors,num_attributes = num_attributes,reg_1=0.001,reg_2=0.001)
+    myfm = FM(w=w,v_p=v_p,v_q=v_q,n_iter = 50,num_factors=num_factors,num_attributes = num_attributes,dataname = train_data_name, reg_1=0.001,reg_2=0.001)
     myfm.fit(x_train,train_label,x_test,test_label)

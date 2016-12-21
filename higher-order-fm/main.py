@@ -1,8 +1,8 @@
 #_*_ coding:utf-8_*_
 import numpy as np
 from sklearn.feature_extraction import DictVectorizer
-import my_pyfmlib as pylibfm
-import mymultiprocess_crossvalidation as mcv
+from higher_fm import FM
+
 
 def loadData(filename):
     data=[]
@@ -27,15 +27,11 @@ if __name__=='__main__':
     x_train=v.fit_transform(train_data)
     x_test = v.fit_transform(test_data)
 
-    #mycv = mcv.cross_val_regularization(x_train,train_label,train_data_name)
-    #best_reg = mycv.sele_para()
-    best_reg = [0.001,0.0001]
-    fm = pylibfm.FM(num_factors = 10,num_iter=500,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=train_data_name,reg_1 = best_reg[0], reg_2 = best_reg[1])
-
-    fm.fit(x_train,train_label,x_test,test_label)
-    pre_label = fm.predict(x_test)
-
-    diff = 0.5*np.sum((pre_label-test_label)**2)/test_label.size
-    fh = open('./results/'+train_data_name,'a')
-    fh.write("--test--RMSE---"+str(diff))
-    print(diff)
+    num_attributes = x_train.shape[1]
+    num_factors = 10
+    #初始化w,v_p,v_q
+    w = np.zeros(num_attributes)
+    v_p = np.zeros((num_attributes+1,num_factors+1))
+    v_q = np.zeros((num_attributes+1,num_factors+1))
+    myfm = FM(w=w,v_p=v_p,v_q=v_q,n_iter = 100,num_factors=num_factors,num_attributes = num_attributes,reg_1=0.01,reg_2=0.01)
+    myfm.fit(x_train,train_label,x_test,test_label)

@@ -222,7 +222,7 @@ cdef class FM_fast(object):
         cdef DOUBLE reg_0 = self.reg_0
         cdef DOUBLE reg_1 = self.reg_1
         cdef DOUBLE reg_2 = self.reg_2
-        cdef int t_rda = self.T_rda
+        cdef DOUBLE t_rda = float(self.T_rda)
         # have already calculate sum_
         p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
 
@@ -235,19 +235,14 @@ cdef class FM_fast(object):
         self.learning_rate = 1.0/(self.t + self.t0)
 
         self.sumloss += _squared_loss(p,y)
+        gamma = 1
         #update global bias
-        #if self.k0 > 0:
-        #    grad_0 = mult
-        #    w0 -= learning_rate*(grad_0 + 2*reg_0*w0)
-
+        w0 = -1*np.sqrt(t_rda)/gamma*w0
         if self.k1 > 0:
             for i in range(xnnz):
                 feature = x_ind_ptr[i]
                 grad_w[feature]= mult*x_data_ptr[i]
                 U_w[feature] = ((t_rda-1)/t_rda) *U_w[feature] + (1/t_rda)*grad_w[feature]
-
-
-        #update feature factor vectors
 
         for f in range(self.num_factors):
             for i in range(xnnz):
@@ -255,31 +250,38 @@ cdef class FM_fast(object):
                 grad_v[f,feature] = mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature])
                 U_v[f,feature] = ((t_rda-1)/t_rda)*U_v[f,feature] + (1/t_rda)*grad_v[f,feature]
 
+
         # 下面计算下一次迭代的值
         lambda_1 = self.reg_1
         lambda_2 = self.reg_2
-        gamma = 0.01
+
 
         for i in range(xnnz):
             feature = x_ind_ptr[i]
             U_comb[:,feature] = np.concatenate(([U_w[feature]],U_v[:,feature]))
             for f in range(self.num_factors+1):
-                C_comb[f,feature] = max(0,np.abs(U_comb[f,feature])-lambda_2)*(U_comb[f,feature]/np.abs(U_comb[f,feature]))
+                if (U_comb[f,feature] > 0):
+                    sign = 1
+                elif(U_comb[f,feature] <0):
+                    sign = -1
+                else:
+                    sign = 0
+                C_comb[f,feature] = max(0,np.abs(U_comb[f,feature])-lambda_2)*sign
             w[feature] = -1*(np.sqrt(t_rda)/gamma)*max(0,1-(lambda_1/np.linalg.norm(C_comb[:,feature])))*C_comb[0,feature]
             v[:,feature] = -1*(np.sqrt(t_rda)/gamma)*max(0,1-(lambda_1/np.linalg.norm(C_comb[:,feature])))*C_comb[1:,feature]
 
-        t_rda += 1
         #pass updated vars to other functions
-
         self.learning_rate = learning_rate
         self.w0 = w0
         self.w = w
         self.v = v
+        self.U_w = U_w
+        self.U_v = U_v
         self.grad_w = grad_w
         self.grad_v = grad_v
         self.t +=1
         self.count +=1
-        self.T_rda = t_rda
+        self.T_rda +=1
 
 
     def fit(self, CSRDataset dataset, CSRDataset validation_dataset):

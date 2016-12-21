@@ -1,3 +1,3 @@
 # modified-FM
 
- There exists a big problem that when the number of iteration increases, the test error also increases, which is contrary to our expections
+ The code of the modified-FM (Factorization Machine), we use different regularizer for thes modified-FM, including L2,group lasso and the combined group lasso to achieve the hierarchical structure 

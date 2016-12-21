@@ -1,4 +1,4 @@
 *.c
 *.pyd
 *.pyc
-./build/*
+build/

@@ -6,13 +6,16 @@ import matplotlib.pyplot as plt#
 
 class FM():
 
-    def __init__(self,verbose = True, num_order = 3, n_iter=100, num_factors=10, num_attributes=10, dataname="unknown", reg_1=0.01,reg_2=0.01):
+    def __init__(self,verbose = True, num_order = 3, n_iter=100, num_factors=10, num_attributes=10, dataname="unknown", reg_1=0.01,reg_2=0.01,gamma = 1):
         # w,v_p,v_q 需要随机初始化,v_p 和 v_q  的 size 是 (num_attributes+1,num_factors+1)
         self.verbose = verbose
         self.w0 = 1
         self.w = np.zeros(num_attributes)
+        #self.w = np.random.randn(num_attributes)
         self.v_p = np.zeros((num_attributes+1,num_factors+1))
         self.v_q = np.zeros((num_attributes+1,num_factors+1))
+        #self.v_p = np.random.randn((num_attributes+1)*(num_factors+1)).reshape((num_attributes+1,num_factors+1))
+        #self.v_q = np.random.randn((num_attributes+1)*(num_factors+1)).reshape((num_attributes+1,num_factors+1))
         self.num_factors = num_factors
         self.num_attributes  = num_attributes
         self.num_order = num_order
@@ -39,6 +42,14 @@ class FM():
         self.grad_DP_table_thi = np.zeros((self.num_factors,num_order+1,self.num_attributes+1))
         self.grad_DP_table_sec[:,2,num_attributes]  = 1
         self.grad_DP_table_thi[:,num_order,num_attributes] = 1
+
+        #SGL 变量
+        self.U_w0 = 0
+        self.U_w = np.zeros(num_attributes)
+        self.U_v_p = np.zeros((num_attributes+1,num_factors+1))
+        self.U_v_q = np.zeros((num_attributes+1,num_factors+1))
+        self.T_rda = 1.0
+        self.gamma = gamma
 
 
         self.count = 0
@@ -185,6 +196,15 @@ class FM():
         v_q = self.v_q
         grad_w = self.grad_w
         num_factors = self.num_factors
+        t_rda = self.T_rda
+        gamma = self.gamma
+        U_w0 = self.U_w0
+        U_w = self.U_w
+        U_v_p = self.U_v_p
+        U_v_q = self.U_v_q
+        #从1开始索引，所以要加一
+        U_comb = np.zeros((self.num_attributes+1,self.num_factors*2+2))
+        C_comb = np.zeros((self.num_attributes+1,self.num_factors*2+2))
         #计算对应于这个x的DPtable中的数据
         p = self._predict_instance(x)
 
@@ -197,13 +217,13 @@ class FM():
         #bias
         grad_0 = mult
         # 没有对 w0 添加惩罚项
-        w0 -= self.learning_rate*grad_0
+        U_w0 = ((t_rda-1.0)/t_rda)*U_w0 + (1.0/t_rda)*grad_0
 
         #更新一阶系数
         for i in range(x.nnz):
             feature = x.indices[i]
             grad_w[feature] = mult*x.data[i]
-            w[feature] -= self.learning_rate*(grad_w[feature] + 2*self.reg_1*w[feature])
+            U_w[feature] = ((t_rda-1.0)/t_rda)*U_w[feature] + (1.0/t_rda)*grad_w[feature]
         #更新二阶系数,暂时将三阶的情况与二阶合并
         self._grad_DP(x)
         grad_v_p = self.grad_v_p
@@ -211,8 +231,32 @@ class FM():
         for i in range(1,num_factors+1):
             for j in range(x.nnz):
                 feature = x.indices[j]
-                v_p[feature+1,i] = v_p[feature+1,i] - self.learning_rate*(mult*grad_v_p[feature+1,i]+2*self.reg_2*v_p[feature+1,i])
-                v_q[feature+1,i] = v_q[feature+1,i] - self.learning_rate*(mult*grad_v_q[feature+1,i]+2*self.reg_2*v_q[feature+1,i])
+                '''v_p[feature+1,i] = v_p[feature+1,i] - self.learning_rate*(mult*grad_v_p[feature+1,i]+2*self.reg_2*v_p[feature+1,i])
+                v_q[feature+1,i] = v_q[feature+1,i] - self.learning_rate*(mult*grad_v_q[feature+1,i]+2*self.reg_2*v_q[feature+1,i])'''
+                U_v_p[feature+1,i] = ((t_rda-1.0)/t_rda)*U_v_p[feature+1,i] + (1.0/t_rda)*(mult*grad_v_p[feature+1,i])
+                U_v_q[feature+1,i] = ((t_rda-1.0)/t_rda)*U_v_q[feature+1,i] + (1.0/t_rda)*(mult*grad_v_q[feature+1,i])
+
+        #update w0,w,v_p,v_q
+        lambda_1 = self.reg_1
+        lambda_2 = self.reg_2
+
+        w0 = -1*np.sqrt(t_rda)/gamma*U_w0
+        for i in range(x.nnz):
+            feature = x.indices[i]
+            feature += 1
+            U_comb[feature,1:] = np.concatenate(([U_w[feature-1]],U_v_p[feature,1:],U_v_q[feature,1:]))
+            for f in range(1,self.num_factors*2+2):
+                if(U_comb[feature,f] > 0):
+                    sign = 1
+                elif(U_comb[feature,f] < 0):
+                    sign = -1
+                else:
+                    sign = 0
+                C_comb[feature,f] = max(0,np.abs(U_comb[feature,f])-lambda_2)*sign
+            w[feature-1] = -1*(np.sqrt(t_rda)/gamma)*max(0,1-(lambda_1/np.linalg.norm(C_comb[feature,1:])))*C_comb[feature,1]
+            v_p[feature,1:] = -1*(np.sqrt(t_rda)/gamma)*max(0,1-(lambda_1/np.linalg.norm(C_comb[feature,1:])))*C_comb[feature,2:self.num_factors+2]
+            v_q[feature,1:] = -1*(np.sqrt(t_rda)/gamma)*max(0,1-(lambda_1/np.linalg.norm(C_comb[feature,1:])))*C_comb[feature,self.num_factors+2:]
+
 
         self.w0 = w0
         self.w = w
@@ -220,6 +264,11 @@ class FM():
         self.v_q = v_q
         self.t +=1
         self.count +=1
+        self.T_rda += 1
+        self.U_w0 = U_w0
+        self.U_w = U_w
+        self.U_v_p = U_v_p
+        self.U_v_q = U_v_q
 
 
 
@@ -238,12 +287,13 @@ class FM():
                 print("-----EPOCH----:"+str(epoch))
             self.sum_loss = 0.0
             self.count = 0
-            n_sample_sele = 10
+            n_sample_sele = 20
             selected_list = random.sample(range(n_samples),n_sample_sele)
 
             for item in selected_list:
                 self._sgd_theta_step(train_data[item,:],train_y[item])
             training_errors.append(self.sum_loss/self.count)
+            print(str(self.sum_loss/self.count))
             if(self.verbose==True and itercount%10==0):
                 pre_y = self._predict(test_data)
                 test_error = 0.5*np.sum((pre_y-test_y)**2)/test_y.shape[0]

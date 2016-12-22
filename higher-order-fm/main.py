@@ -2,7 +2,7 @@
 import numpy as np
 from sklearn.feature_extraction import DictVectorizer
 from higher_fm import FM
-
+import mymultiprocess_crossvalidation as my_cv
 
 def loadData(filename):
     data=[]
@@ -28,10 +28,11 @@ if __name__=='__main__':
     x_test = v.fit_transform(test_data)
 
     num_attributes = x_train.shape[1]
-    num_factors = 20
-    #初始化w,v_p,v_q
-    w = np.zeros(num_attributes)
-    v_p = np.zeros((num_attributes+1,num_factors+1))
-    v_q = np.zeros((num_attributes+1,num_factors+1))
-    myfm = FM(w=w,v_p=v_p,v_q=v_q,n_iter = 50,num_factors=num_factors,num_attributes = num_attributes,dataname = train_data_name, reg_1=0.001,reg_2=0.001)
+    num_factors = 10
+
+    #cv = my_cv.cross_val_regularization(x_train,train_label,num_factors = num_factors,num_attributes = num_attributes)
+    #bestreg = cv.sele_para()
+    #reg_1 = 0.001, reg_2 = 0.001
+    bestreg = [0.001,0.001]
+    myfm = FM(verbose = True,n_iter = 200,num_factors=num_factors,num_attributes = num_attributes,dataname = train_data_name, reg_1=bestreg[0],reg_2=bestreg[0])
     myfm.fit(x_train,train_label,x_test,test_label)

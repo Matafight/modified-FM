@@ -249,7 +249,7 @@ cdef class FM_fast(object):
             for i in range(xnnz):
                 feature = x_ind_ptr[i]
                 grad_w[feature]= mult*x_data_ptr[i]
-                U_w[feature] = ((t_rda-1)/t_rda) *U_w[feature] + (1/t_rda)*grad_w[feature]
+                U_w[feature] = ((t_rda-1.0)/t_rda) *U_w[feature] + (1.0/t_rda)*grad_w[feature]
 
         for f in range(self.num_factors):
             for i in range(xnnz):

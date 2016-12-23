@@ -29,8 +29,8 @@ if __name__=='__main__':
 
     #mycv = mcv.cross_val_regularization(x_train,train_label,train_data_name)
     #best_reg = mycv.sele_para()
-    best_reg = [5,5]
-    fm = pylibfm.FM(num_factors = 10,num_iter=500,verbose = True,task="regression",initial_learning_rate=1,learning_rate_schedule="optimal",dataname=train_data_name,reg_1 = best_reg[0], reg_2 = best_reg[1],gamma = 1)
+    best_reg = [0.0050,0.0050]
+    fm = pylibfm.FM(num_factors = 10,num_iter=100,verbose = True,task="regression",initial_learning_rate=10,learning_rate_schedule="optimal",dataname=train_data_name,reg_1 = best_reg[0], reg_2 = best_reg[1],gamma = 5)
 
     fm.fit(x_train,train_label,x_test,test_label)
     pre_label = fm.predict(x_test)

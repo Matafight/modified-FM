@@ -14,7 +14,7 @@ import random
 from libc.math cimport exp, log, pow
 cimport numpy as np
 cimport cython
-
+import matplotlib.pyplot as plt
 np.import_array()
 
 ctypedef np.float64_t DOUBLE
@@ -417,7 +417,8 @@ cdef class FM_fast(object):
         cdef int itercount=0
         fh = open('./results/train_error_'+filename+'.txt','w')
         fh_test = open('./results/test_error_'+filename+'.txt','w')
-
+        training_errors = []
+        testing_errors = []
         for epoch in range(self.n_iter):
 
             if self.verbose > 0:
@@ -439,15 +440,33 @@ cdef class FM_fast(object):
                     self._sgd_lambda_step(validation_x_data_ptr, validation_x_ind_ptr,
                                           validation_xnnz, validation_y)
             if self.verbose > 0:
-                error_type = "MSE" if self.task == REGRESSION else "log loss"
-                print "Training %s: %.5f" % (error_type, (self.sumloss / self.count))
-                fh.write(str(self.sumloss/self.count)+'\n')
+               
                 if(itercount%10==0):
+                    error_type = "MSE" if self.task == REGRESSION else "log loss"
+                    print "Training %s: %.5f" % (error_type, (self.sumloss / self.count))
+                    fh.write(str(self.sumloss/self.count)+'\n')
+                    training_errors.append(self.sumloss/self.count)
                     iter_error = 0.0
                     pre_test = self._predict(self.x_test)
                     iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
                     fh_test.write(str(iter_error)+'\n')
+                    testing_errors.append(self.sumloss/self.count)
             itercount +=1
+        fh.close()
+        fh_test.close()
+        if(self.verbose > 0):
+              draw_line(training_errors,testing_errors,self.dataname)
+            
+def draw_line(training_errors,testing_errors,dataname):
+    lentrain = len(training_errors)
+    lentest  = len(testing_errors)
+    a,subp = plt.subplots(2)
+    subp[0].plot(range(lentrain),training_errors)
+    subp[1].plot(range(lentest),testing_errors)
+    dataname = './results/figures/'+dataname
+    plt.savefig(dataname+'.png')
+    plt.show()
+
 
 cdef inline double max(double a, double b):
     return a if a >= b else b

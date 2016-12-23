@@ -7,6 +7,7 @@ from libc.math cimport exp,log,pow,sqrt
 import random
 cimport numpy as np
 cimport cython
+import matplotlib.pyplot as plt
 
 np.import_array()
 
@@ -205,6 +206,81 @@ cdef class FM_fast(object):
             return_preds[i] = p
         return return_preds
 
+    #using another optimization technology: FOBO and  Moreau-Yosida Regularization method to update the parameter
+    cdef _sgd_FOBO_MYR_step(self,DOUBLE * x_data_ptr, INTEGER * x_ind_ptr, int xnnz, DOUBLE y):
+        cdef DOUBLE w0 = self.w0
+        cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] w = self.w
+        cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] v = self.v
+        cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] grad_w = self.grad_w
+        cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] grad_v = self.grad_v
+        cdef DOUBLE reg_1 = self.reg_1
+        cdef DOUBLE reg_2 = self.reg_2
+
+        p = self._predict_instance(x_data_ptr, x_ind_ptr, xnnz)
+        
+        #regression task
+        #p = max(self.max_target, p)
+        #p = min(self.min_target, p)
+        mult = 2*(p-y)
+        
+        #set learning_rate
+        self.learning_rate = 1.0/(self.t + self.t0)
+        learning_rate = self.learning_rate
+        self.sumloss += _squared_loss(p,y)
+
+        #update bias
+        grad_0 = mult
+        w0 -= learning_rate*grad_0
+
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            grad_w[feature] = mult*x_data_ptr[i]
+            w[feature] -= learning_rate*grad_w[feature]
+            
+        for f in range(self.num_factors):
+            for i in range(xnnz):
+                feature = x_ind_ptr[i]
+                grad_v[f,feature] = mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature]) 
+                v[f,feature] -= learning_rate*grad_v[f,feature]
+        U = np.concatenate((w.reshape(1,self.num_attributes),v),axis = 0)
+        # step 1 
+        absU = abs(U)
+        U[absU <= reg_1] = 0
+        ind = absU > reg_1
+        U[ind] = (absU[ind] - reg_1)/absU[ind] * U[ind]
+
+        #step 2, L2 norm on each column of U
+        normU = np.linalg.norm(U,axis = 0)
+        normU[normU <= reg_2] = 0
+        ind = normU > reg_2
+        normU[ind] = (normU[ind] - reg_2)/normU[ind]
+        alpha = np.tile(normU,(self.num_factors+1,1))
+        U = U*alpha
+
+        w = U[0,:]
+        num_zero = np.sum(w==0)
+        zero_rato = float(num_zero)/self.num_attributes
+        #print(zero_rato)
+        v = U[1:,:]
+
+        self.learning_rate = learning_rate
+        self.w0 = w0
+        self.w = w
+        self.v = v
+        self.grad_w = grad_w
+        self.grad_v = grad_v
+        self.t += 1
+        self.count += 1
+        
+        
+
+        
+
+
+
+
+        
+        
     cdef _sgd_theta_step(self,DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz,DOUBLE y):
         cdef DOUBLE mult = 0.0
         cdef DOUBLE p
@@ -291,6 +367,37 @@ cdef class FM_fast(object):
         self.count +=1
         self.T_rda +=1
 
+    def init_para(self,CSRDataset dataset):
+        cdef DOUBLE * x_data_ptr = NULL
+        cdef INTEGER * x_ind_ptr = NULL
+        cdef DOUBLE y = 0.0
+        cdef int xnnz
+        cdef Py_ssize_t n_samples = dataset.n_samples
+        cdef np.ndarray [DOUBLE, ndim = 1, mode = 'c'] w = self.w
+        cdef np.ndarray [DOUBLE, ndim = 2, mode = 'c'] v = self.v
+        cdef DOUBLE learning_rate = 0.0000001
+        num_attributes = self.num_attributes
+        num_factors = self.num_factors
+        cdef DOUBLE sample_weight = 1.0
+        cdef DOUBLE reg_1 = 0.1
+        num_sample_iter = 2
+        selected_list = random.sample(range(n_samples),num_sample_iter)
+        for i in selected_list:
+            dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
+            
+            p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
+            mult = (p-y)
+            for k in range(xnnz):
+                feature = x_ind_ptr[k]
+                w[feature] -= learning_rate*(mult*x_data_ptr[k]+reg_1*w[feature])
+        for i in range(num_attributes):
+            v[:,i] = w[i]/float(num_attributes)
+
+        
+        self.w = w
+        self.v = v
+            
+
 
     def fit(self, CSRDataset dataset, CSRDataset validation_dataset):
         cdef Py_ssize_t n_samples = dataset.n_samples
@@ -311,8 +418,11 @@ cdef class FM_fast(object):
         cdef unsigned int i =0
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE validation_sample_weight=1.0
-        fh = open('./results/train_error_'+self.dataname+'.txt','w')
-        fhtest = open('./results/test_error_'+self.dataname+'.txt','w')
+        fh = open('./results/train_reg_1_'+str(self.reg_1)+'_reg_2_'+str(self.reg_2)+'_'+self.dataname+'.txt','w')
+        fhtest = open('./results/test_reg_1_'+str(self.reg_1)+'_reg_2_'+str(self.reg_2)+'_'+self.dataname+'.txt','w')
+        training_errors = []
+        testing_errors = []
+        #self.init_para(dataset)
         for epoch in range(self.n_iter):
             if self.verbose >0 :
                 strtemp = "--Epoch--"+str(epoch+1)+"\n"
@@ -323,31 +433,46 @@ cdef class FM_fast(object):
             if self.shuffle_training:
                 dataset.shuffle(self.seed)
 
-            num_sample_iter = 20
+            num_sample_iter = n_samples-10
             selected_list = random.sample(range(n_samples),num_sample_iter)
 
             for i in selected_list:
                 dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
-                self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
+                #self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
+
+                self._sgd_FOBO_MYR_step(x_data_ptr,x_ind_ptr,xnnz,y)
 
                 if(epoch > 0):
                     # lambda step
                     pass
             if self.verbose > 0:
-                strtemp = "Training MSE--"+str(self.sumloss/self.count)+"\n"
-                print(strtemp)
-                fh.write(str(self.sumloss/self.count)+'\n')
+                
                 if(itercount % 10 ==0):
+                    strtemp = "Training MSE--"+str(self.sumloss/self.count)+"\n"
+                    print(strtemp)
+                    fh.write(str(self.sumloss/self.count)+'\n')
+                    training_errors.append(self.sumloss/self.count)
                     iter_error = 0.0
                     pre_test = self._predict(self.x_test)
                     iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
                     print("=======test_error===="+str(iter_error))
+                    testing_errors.append(iter_error)
                     fhtest.write(str(iter_error)+'\n')
             itercount +=1
         fh.close()
         fhtest.close()
+        if(self.verbose>0):
+            draw_line(training_errors,testing_errors,self.dataname,self.reg_1,self.reg_2)
 
-
+def draw_line(training_errors,testing_errors,dataname,reg_1,reg_2):
+    lentrain = len(training_errors)
+    lentest  = len(testing_errors)
+    a,subp = plt.subplots(2)
+    subp[0].plot(range(lentrain),training_errors)
+    subp[1].plot(range(lentest),testing_errors)
+    dataname = './results/figures/'+dataname+'_reg_1_'+str(reg_1)+'_reg_2_'+str(reg_2)
+    plt.savefig(dataname+'.png')
+    plt.show()
 
 
 cdef _squareq(np.ndarray a, INTEGER b):

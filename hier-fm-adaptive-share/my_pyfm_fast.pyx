@@ -7,7 +7,9 @@ from libc.math cimport exp,log,pow,sqrt
 cimport numpy as np
 cimport cython
 import random
+import matplotlib.pyplot as plt
 np.import_array()
+
 
 ctypedef np.float64_t DOUBLE
 ctypedef np.int32_t INTEGER
@@ -418,13 +420,15 @@ cdef class FM_fast(object):
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE validation_sample_weight=1.0
 
-        filehandler = open('./results/train_error_'+filename+'.txt','w')
+        fh = open('./results/train_error_'+filename+'.txt','w')
         fhtest = open('./results/test_error_'+filename+'.txt','w')
+        training_errors = []
+        testing_errors = []
         for epoch in range(self.n_iter):
             if self.verbose >0 :
                 strtemp = "--Epoch  "+str(epoch+1)+'\n'
                 print(strtemp)
-                filehandler.write(strtemp)
+                fh.write(strtemp)
                 #print("--Epoch %d" %(epoch + 1))
             self.count = 0
             self.sumloss = 0
@@ -446,7 +450,8 @@ cdef class FM_fast(object):
             if self.verbose > 0:
 
                 strtemp = "Training MSE "+str(self.sumloss/self.count)+"\n"
-                filehandler.write(str(self.sumloss/self.count)+'\n')
+                fh.write(str(self.sumloss/self.count)+'\n')
+                training_errors.append(self.sumloss/self.count)
                 if(itercount % 10 ==0):
                     iter_error = 0.0
                     pre_test = self._predict(self.x_test)
@@ -454,10 +459,21 @@ cdef class FM_fast(object):
                     print("=======test_error===="+str(iter_error))
                     fhtest.write(" iter: "+str(itercount)+" test_error: "+str(iter_error)+'\n')
                     fhtest.write(str(iter_error)+'\n')
+                    testing_errors.append(iter_error)
             itercount +=1
-        filehandler.close()
+        fh.close()
         fhtest.close()
+        draw_line(training_errors,testing_errors,self.dataname,self.reg_1,self.reg_2)
 
+def draw_line(training_errors,testing_errors,dataname,reg_1,reg_2):
+    lentrain = len(training_errors)
+    lentest  = len(testing_errors)
+    a,subp = plt.subplots(2)
+    subp[0].plot(range(lentrain),training_errors)
+    subp[1].plot(range(lentest),testing_errors)
+    dataname = './results/figures/'+dataname+'_reg_1_'+str(reg_1)+'_reg_2_'+str(reg_2)
+    plt.savefig(dataname+'.png')
+    plt.show()
 
 
 

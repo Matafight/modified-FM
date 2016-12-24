@@ -424,7 +424,7 @@ cdef class FM_fast(object):
         fhtest.write('reg_2:'+str(self.reg_2)+'\n')
         fhtest.write('num_factors:'+str(self.num_factors)+'\n')
         fhtest.write('init_learning_rate:'+str(self.init_learning_rate)+'\n')
-        fhtest.write('num_sample_iter:'+str(num_sample_iter))
+        fhtest.write('num_sample_iter:'+str(num_sample_iter)+'\n')
         training_errors = []
         testing_errors = []
         for epoch in range(self.n_iter):

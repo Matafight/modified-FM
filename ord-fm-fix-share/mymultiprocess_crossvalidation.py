@@ -38,8 +38,8 @@ class cross_val_regularization:
 
         #find the index of the minimum validationerror
         ind = np.argmin(self.reg_ret)
-        best_reg = np.unravel_index(ind,[self.length,self.length])
-        # reg_1: best_reg[0],ret_2 : best_reg[1]
+        best_reg_ind = np.unravel_index(ind,[self.length,self.length])
+        best_reg=[self.reg_set[best_reg_ind[0]],self.reg_set[best_reg_ind[1]]]
         return best_reg
     def sub_thread(self,x_train,y_train,x_test,y_test,seq):
         print("---Runing---"+str(seq)+"---subthread")

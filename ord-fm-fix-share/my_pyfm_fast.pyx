@@ -5,6 +5,7 @@ import sys
 from time import time
 from libc.math cimport exp,log,pow,sqrt
 import random
+import matplotlib.pyplot as plt
 cimport numpy as np
 cimport cython
 
@@ -282,6 +283,8 @@ cdef class FM_fast(object):
         cdef DOUBLE validation_sample_weight=1.0
         fh = open('./results/'+self.dataname,'w')
         fhtest = open('./results/'+'iter_test_error_'+self.dataname,'w')
+        training_errors = []
+        testing_errors = []
         for epoch in range(self.n_iter):
             if self.verbose >0 :
                 strtemp = "--Epoch--"+str(epoch+1)+"\n"
@@ -311,6 +314,8 @@ cdef class FM_fast(object):
                 strtemp = "Training MSE--"+str(self.sumloss/self.count)+"\n"
                 print(strtemp)
                 fh.write(strtemp)
+                training_errors.append(self.sumloss/self.count)
+
                 #print ("Training %s:%.5f"%("MSE",(self.sumloss/self.count)))
                 if(itercount % 10 ==0):
                     iter_error = 0.0
@@ -318,10 +323,22 @@ cdef class FM_fast(object):
                     iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
                     print("=======test_error===="+str(iter_error))
                     fhtest.write("iter: "+str(itercount)+" test_error: "+str(iter_error)+'\n')
+                    testing_errors.append(iter_error)
             itercount +=1
+        if(self.verbose>0):
+            draw_line(training_errors,testing_errors,self.dataname,self.reg_1,self.reg_2)
         fh.close()
         fhtest.close()
 
+def draw_line(training_errors,testing_errors,dataname,reg_1,reg_2):
+    lentrain = len(training_errors)
+    lentest  = len(testing_errors)
+    a,subp = plt.subplots(2)
+    subp[0].plot(range(lentrain),training_errors)
+    subp[1].plot(range(lentest),testing_errors)
+    dataname = './results/figures/'+dataname+'_reg_1_'+str(reg_1)+'_reg_2_'+str(reg_2)
+    plt.savefig(dataname+'.png')
+    plt.show()
 
 
 

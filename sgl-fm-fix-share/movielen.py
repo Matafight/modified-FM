@@ -19,8 +19,8 @@ def loadData(filename):
     return (data,np.array(y),users,items)
 
 if __name__=='__main__':
-    train_data_name = 'u2.base'
-    test_data_name = 'u2.test'
+    train_data_name = 'u4.base'
+    test_data_name = 'u4.test'
     (train_data,train_label,train_users,train_items)= loadData('../data/'+train_data_name)
     (test_data,test_label,test_users,test_items)=loadData('../data/'+test_data_name)
     v = DictVectorizer()
@@ -29,8 +29,8 @@ if __name__=='__main__':
 
     #mycv = mcv.cross_val_regularization(x_train,train_label,train_data_name)
     #best_reg = mycv.sele_para()
-    best_reg = [0.0050,0.0050]
-    fm = pylibfm.FM(num_factors = 10,num_iter=100,verbose = True,task="regression",initial_learning_rate=10,learning_rate_schedule="optimal",dataname=train_data_name,reg_1 = best_reg[0], reg_2 = best_reg[1],gamma = 5)
+    best_reg = [0.0010,0.0010]
+    fm = pylibfm.FM(num_factors = 10,num_iter=500,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=train_data_name,reg_1 = best_reg[0], reg_2 = best_reg[1],gamma = 5)
 
     fm.fit(x_train,train_label,x_test,test_label)
     pre_label = fm.predict(x_test)

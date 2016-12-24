@@ -213,35 +213,36 @@ cdef class FM_fast(object):
         cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] v = self.v
         cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] grad_w = self.grad_w
         cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] grad_v = self.grad_v
+        cdef DOUBLE learning_rate = self.learning_rate
         cdef DOUBLE reg_1 = self.reg_1
         cdef DOUBLE reg_2 = self.reg_2
 
         p = self._predict_instance(x_data_ptr, x_ind_ptr, xnnz)
         
         #regression task
-        #p = max(self.max_target, p)
-        #p = min(self.min_target, p)
+        p = min(self.max_target, p)
+        p = max(self.min_target, p)
         mult = 2*(p-y)
         
         #set learning_rate
         self.learning_rate = 1.0/(self.t + self.t0)
-        learning_rate = self.learning_rate
         self.sumloss += _squared_loss(p,y)
 
         #update bias
         grad_0 = mult
-        w0 -= learning_rate*grad_0
-
+        w0 -= learning_rate*(grad_0)
+        #w0 -= learning_rate*(grad_0+2*0.001*w0)
         for i in range(xnnz):
             feature = x_ind_ptr[i]
             grad_w[feature] = mult*x_data_ptr[i]
-            w[feature] -= learning_rate*grad_w[feature]
+            w[feature] -= learning_rate*(grad_w[feature])
             
         for f in range(self.num_factors):
             for i in range(xnnz):
                 feature = x_ind_ptr[i]
                 grad_v[f,feature] = mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature]) 
-                v[f,feature] -= learning_rate*grad_v[f,feature]
+                v[f,feature] -= learning_rate*(grad_v[f,feature])
+                
         U = np.concatenate((w.reshape(1,self.num_attributes),v),axis = 0)
         # step 1 
         absU = abs(U)
@@ -260,7 +261,6 @@ cdef class FM_fast(object):
         w = U[0,:]
         num_zero = np.sum(w==0)
         zero_rato = float(num_zero)/self.num_attributes
-        #print(zero_rato)
         v = U[1:,:]
 
         self.learning_rate = learning_rate
@@ -433,13 +433,12 @@ cdef class FM_fast(object):
             if self.shuffle_training:
                 dataset.shuffle(self.seed)
 
-            num_sample_iter = n_samples-10
+            num_sample_iter = 20
             selected_list = random.sample(range(n_samples),num_sample_iter)
 
             for i in selected_list:
                 dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
                 #self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
-
                 self._sgd_FOBO_MYR_step(x_data_ptr,x_ind_ptr,xnnz,y)
 
                 if(epoch > 0):

@@ -450,7 +450,7 @@ cdef class FM_fast(object):
                     pre_test = self._predict(self.x_test)
                     iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
                     fh_test.write(str(iter_error)+'\n')
-                    testing_errors.append(self.sumloss/self.count)
+                    testing_errors.append(iter_error)
             itercount +=1
         fh.close()
         fh_test.close()

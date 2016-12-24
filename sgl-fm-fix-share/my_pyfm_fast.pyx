@@ -2,8 +2,8 @@
 
 import numpy as np
 import sys
-from time import time
 from libc.math cimport exp,log,pow,sqrt
+import time
 import random
 cimport numpy as np
 cimport cython
@@ -66,7 +66,8 @@ cdef class FM_fast(object):
     cdef int task
     cdef int learning_rate_schedule
     cdef double learning_rate
-
+    cdef double init_learning_rate 
+        
     cdef int shuffle_training
     cdef int seed
     cdef int verbose
@@ -124,6 +125,7 @@ cdef class FM_fast(object):
         self.t = 1
         self.t0  = 1
         self.learning_rate = eta0
+        self.init_learning_rate = eta0
         self.power_t  = power_t
         self.min_target = min_target
         self.max_target = max_target
@@ -271,12 +273,6 @@ cdef class FM_fast(object):
         self.grad_v = grad_v
         self.t += 1
         self.count += 1
-        
-        
-
-        
-
-
 
 
         
@@ -418,11 +414,19 @@ cdef class FM_fast(object):
         cdef unsigned int i =0
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE validation_sample_weight=1.0
-        fh = open('./results/train_reg_1_'+str(self.reg_1)+'_reg_2_'+str(self.reg_2)+'_'+self.dataname+'.txt','w')
-        fhtest = open('./results/test_reg_1_'+str(self.reg_1)+'_reg_2_'+str(self.reg_2)+'_'+self.dataname+'.txt','w')
+
+        num_sample_iter = 20
+        cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
+        fh = open('./results/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+self.dataname+'.txt','w')
+        fhtest = open('./results/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+self.dataname+'.txt','w')
+        #在文件的开头简单介绍一下参数设置
+        fhtest.write('reg_1:'+str(self.reg_1)+'\n')
+        fhtest.write('reg_2:'+str(self.reg_2)+'\n')
+        fhtest.write('num_factors:'+str(self.num_factors)+'\n')
+        fhtest.write('init_learning_rate:'+str(self.init_learning_rate)+'\n')
+        fhtest.write('num_sample_iter:'+str(num_sample_iter))
         training_errors = []
         testing_errors = []
-        #self.init_para(dataset)
         for epoch in range(self.n_iter):
             if self.verbose >0 :
                 strtemp = "--Epoch--"+str(epoch+1)+"\n"
@@ -433,7 +437,6 @@ cdef class FM_fast(object):
             if self.shuffle_training:
                 dataset.shuffle(self.seed)
 
-            num_sample_iter = 20
             selected_list = random.sample(range(n_samples),num_sample_iter)
 
             for i in selected_list:
@@ -441,11 +444,7 @@ cdef class FM_fast(object):
                 #self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
                 self._sgd_FOBO_MYR_step(x_data_ptr,x_ind_ptr,xnnz,y)
 
-                if(epoch > 0):
-                    # lambda step
-                    pass
             if self.verbose > 0:
-                
                 if(itercount % 10 ==0):
                     strtemp = "Training MSE--"+str(self.sumloss/self.count)+"\n"
                     print(strtemp)
@@ -461,15 +460,15 @@ cdef class FM_fast(object):
         fh.close()
         fhtest.close()
         if(self.verbose>0):
-            draw_line(training_errors,testing_errors,self.dataname,self.reg_1,self.reg_2)
+            draw_line(training_errors,testing_errors,self.dataname,cur_time,self.reg_1,self.reg_2)
 
-def draw_line(training_errors,testing_errors,dataname,reg_1,reg_2):
+def draw_line(training_errors,testing_errors,dataname,cur_time,reg_1,reg_2):
     lentrain = len(training_errors)
     lentest  = len(testing_errors)
     a,subp = plt.subplots(2)
     subp[0].plot(range(lentrain),training_errors)
     subp[1].plot(range(lentest),testing_errors)
-    dataname = './results/figures/'+dataname+'_reg_1_'+str(reg_1)+'_reg_2_'+str(reg_2)
+    dataname = './results/figures/'+dataname+cur_time+'_reg_1_'+str(reg_1)+'_reg_2_'+str(reg_2)
     plt.savefig(dataname+'.png')
     plt.show()
 

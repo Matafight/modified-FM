@@ -417,8 +417,8 @@ cdef class FM_fast(object):
 
         num_sample_iter = 20
         cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
-        fh = open('./results/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+self.dataname+'.txt','w')
-        fhtest = open('./results/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+self.dataname+'.txt','w')
+        fh = open('./results/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+self.dataname+'.txt','w')
+        fhtest = open('./results/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+self.dataname+'.txt','w')
         #在文件的开头简单介绍一下参数设置
         fhtest.write('reg_1:'+str(self.reg_1)+'\n')
         fhtest.write('reg_2:'+str(self.reg_2)+'\n')
@@ -460,17 +460,17 @@ cdef class FM_fast(object):
         fh.close()
         fhtest.close()
         if(self.verbose>0):
-            draw_line(training_errors,testing_errors,self.dataname,cur_time,self.reg_1,self.reg_2)
+            self.draw_line(training_errors,testing_errors,cur_time)
 
-def draw_line(training_errors,testing_errors,dataname,cur_time,reg_1,reg_2):
-    lentrain = len(training_errors)
-    lentest  = len(testing_errors)
-    a,subp = plt.subplots(2)
-    subp[0].plot(range(lentrain),training_errors)
-    subp[1].plot(range(lentest),testing_errors)
-    dataname = './results/figures/'+dataname+cur_time+'_reg_1_'+str(reg_1)+'_reg_2_'+str(reg_2)
-    plt.savefig(dataname+'.png')
-    plt.show()
+    def draw_line(self,training_errors,testing_errors,cur_time):
+        lentrain = len(training_errors)
+        lentest  = len(testing_errors)
+        a,subp = plt.subplots(2)
+        subp[0].plot(range(lentrain),training_errors)
+        subp[1].plot(range(lentest),testing_errors)
+        dataname = './results/figures/'+self.dataname+cur_time+'_reg_1_'+str(self.reg_1)+'_reg_2_'+str(self.reg_2)+'k_'+str(self.num_factors)
+        plt.savefig(dataname+'.png')
+        plt.show()
 
 
 cdef _squareq(np.ndarray a, INTEGER b):

@@ -409,29 +409,30 @@ cdef class FM_fast(object):
         cdef unsigned int epoch = 0
         cdef unsigned int i =0
         cdef DOUBLE sample_weight = 1.0
+        cdef DOUBLE min_early_stop = 10000.0
+        cdef unsigned int count_early_stop = 0
 
-        num_sample_iter = 1000
+        num_sample_iter = 100
         cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
-        fh = open('./results/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_'+self.dataname+'.txt','w')
-        fhtest = open('./results/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_'+self.dataname+'.txt','w')
-        #在文件的开头简单介绍一下参数设置
-        fhtest.write('reg_1:'+str(self.reg_1)+'\n')
-        fhtest.write('reg_2:'+str(self.reg_2)+'\n')
-        fhtest.write('num_factors:'+str(self.num_factors)+'\n')
-        fhtest.write('init_learning_rate:'+str(self.init_learning_rate)+'\n')
-        fhtest.write('num_sample_iter:'+str(num_sample_iter)+'\n')
-        training_errors = []
-        testing_errors = []
+        if(self.verbose > 0):
+            fh = open('./results/'+self.dataname+'/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            fhtest = open('./results/'+self.dataname+'/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            #在文件的开头简单介绍一下参数设置
+            fhtest.write('reg_1:'+str(self.reg_1)+'\n')
+            fhtest.write('reg_2:'+str(self.reg_2)+'\n')
+            fhtest.write('num_factors:'+str(self.num_factors)+'\n')
+            fhtest.write('init_learning_rate:'+str(self.init_learning_rate)+'\n')
+            fhtest.write('num_sample_iter:'+str(num_sample_iter)+'\n')
+            training_errors = []
+            testing_errors = []
         for epoch in range(self.n_iter):
             if self.verbose >0 :
                 pre_test = self._predict(self.x_test)
                 pre_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
                 testing_errors.append(pre_error)
 
-
             self.count = 0
             self.sumloss = 0
-
             if self.shuffle_training:
                 dataset.shuffle(self.seed)
 
@@ -454,10 +455,24 @@ cdef class FM_fast(object):
                     print("=======test_error===="+str(iter_error))
                     testing_errors.append(iter_error)
                     fhtest.write(str(iter_error)+'\n')
+            else:
+                if(itercount % 10 == 0):
+                    iter_error = 0.0
+                    pre_test = self._predict(self.x_test)
+                    iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
+                    count_early_stop += 1
+                    if(iter_error < min_early_stop):
+                        min_early_stop = iter_error
+                        count_early_stop = 0
+                    if(count_early_stop == 50):
+                        print('----EARLY-STOPPING-')
+                        break
+
             itercount +=1
-        fh.close()
-        fhtest.close()
+        
         if(self.verbose>0):
+            fh.close()
+            fhtest.close()
             self.draw_line(training_errors,testing_errors,cur_time)
 
     def draw_line(self,training_errors,testing_errors,cur_time):
@@ -466,7 +481,7 @@ cdef class FM_fast(object):
         a,subp = plt.subplots(2)
         subp[0].plot(range(lentrain),training_errors)
         subp[1].plot(range(lentest),testing_errors)
-        dataname = './results/figures/'+self.dataname+cur_time+'_reg_1_'+str(self.reg_1)+'_reg_2_'+str(self.reg_2)+'_k_'+str(self.num_factors)
+        dataname = './results/'+self.dataname+'/figures/'+cur_time+'_reg_1_'+str(self.reg_1)+'_reg_2_'+str(self.reg_2)+'_k_'+str(self.num_factors)
         plt.savefig(dataname+'.png')
         plt.show()
 

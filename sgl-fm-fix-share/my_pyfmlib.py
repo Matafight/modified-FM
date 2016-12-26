@@ -95,11 +95,7 @@ class FM:
 
         X_train_dataset = _make_dataset(X,y)
 
-        if self.verbose==True:
-            x_test_data = _make_dataset(x_test,np.ones(x_test.shape[0]))
-        else:
-            x_test_data = X_train_dataset
-            y_test = np.ones(10)
+        x_test_data = _make_dataset(x_test,np.ones(x_test.shape[0]))
         #setup params
         self.w0 = 0.0
         self.w = np.zeros(self.num_attribute)

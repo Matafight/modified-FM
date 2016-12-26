@@ -5,9 +5,9 @@ import sys
 from libc.math cimport exp,log,pow,sqrt
 import time
 import random
-import matplotlib.pyplot as plt
 cimport numpy as np
 cimport cython
+import matplotlib.pyplot as plt
 
 np.import_array()
 
@@ -69,7 +69,8 @@ cdef class FM_fast(object):
     cdef int task
     cdef int learning_rate_schedule
     cdef double learning_rate
-    cdef double init_learning_rate
+    cdef double init_learning_rate 
+        
     cdef int shuffle_training
     cdef int seed
     cdef int verbose
@@ -78,13 +79,19 @@ cdef class FM_fast(object):
     cdef DOUBLE reg_1
     cdef DOUBLE reg_2
 
+    cdef DOUBLE grad_w0
     cdef np.ndarray grad_w
     cdef np.ndarray grad_v
+    cdef np.ndarray U_v
+    cdef np.ndarray U_w
+    cdef DOUBLE U_w0
+    cdef DOUBLE T_rda # global T for RDA algorithm
     cdef str dataname
     cdef DOUBLE sumloss
     cdef int count # what for?
     cdef CSRDataset x_test
     cdef np.ndarray y_test
+    cdef DOUBLE gamma
     def __init__(self,
                   np.ndarray[DOUBLE,ndim=1,mode='c'] w,
                   np.ndarray[DOUBLE, ndim=2,mode='c'] v,
@@ -108,6 +115,7 @@ cdef class FM_fast(object):
                   dataname,
                   double reg_1,
                   double reg_2,
+                  double gamma,
                   CSRDataset x_test,
                   np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test):
         self.w0 = w0
@@ -141,10 +149,14 @@ cdef class FM_fast(object):
         self.sumloss=0.0
         self.count = 0
         self.dataname = dataname
+        self.grad_w0 = 0.0
         self.grad_w = np.zeros(self.num_attributes)
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
-        #if(verbose==False):
-
+        self.U_w = np.zeros(self.num_attributes)
+        self.U_v = np.zeros((self.num_factors,self.num_attributes))
+        self.U_w0 = 1
+        self.T_rda = 1.0
+        self.gamma = gamma
         self.x_test = x_test
         self.y_test = y_test
 
@@ -204,64 +216,67 @@ cdef class FM_fast(object):
             return_preds[i] = p
         return return_preds
 
-    cdef _sgd_theta_step(self,DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz,DOUBLE y):
-        cdef DOUBLE mult = 0.0
-        cdef DOUBLE p
-        cdef int feature
-        cdef unsigned int i=0
-        cdef unsigned int f=0
-        cdef DOUBLE d
-        cdef DOUBLE grad_0
-
-        cdef DOUBLE w0 = self.w0
-        cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
-        cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] v = self.v
-        cdef np.ndarray[DOUBLE, ndim = 1,mode='c'] grad_w = self.grad_w
-        cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] grad_v = self.grad_v
+    cdef _update_grad_minibatch(self,DOUBLE * x_data_ptr, INTEGER * x_ind_ptr, int xnnz, DOUBLE y):
+        cdef DOUBLE grad_w0 = self.grad_w0
+        cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] grad_w = self.grad_w
+        cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] grad_v = self.grad_v
+        cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] v = self.v
+        #learning_rate 在哪更新？
         cdef DOUBLE learning_rate = self.learning_rate
-        cdef DOUBLE reg_0 = self.reg_0
         cdef DOUBLE reg_1 = self.reg_1
         cdef DOUBLE reg_2 = self.reg_2
+        p = self._predict_instance(x_data_ptr, x_ind_ptr, xnnz)
 
-        # have already calculate sum_
-        p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
-
-        # regression task
-        p = min(self.max_target,p)
-        p = max(self.min_target,p)
+        #regression task
+        p = min(self.max_target, p)
+        p = max(self.min_target, p)
         mult = 2*(p-y)
-
-        #set learning schedule
-        self.learning_rate = 1.0/(self.t + self.t0)
-
+        
+        #set learning_rate
         self.sumloss += _squared_loss(p,y)
-        #update global bias
-        if self.k0 > 0:
-            grad_0 = mult
-            w0 -= learning_rate*(grad_0 + 2*reg_0*w0)
-
-        if self.k1 > 0:
-            for i in range(xnnz):
-                feature = x_ind_ptr[i]
-                grad_w[feature]= mult*x_data_ptr[i]
-
-                w[feature] -= learning_rate*(grad_w[feature]+ 2*reg_1*w[feature])
-
+        grad_w0 += mult
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            grad_w[feature] += mult*x_data_ptr[i]
+        
         for f in range(self.num_factors):
             for i in range(xnnz):
                 feature = x_ind_ptr[i]
-                grad_v[f,feature] = mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature])
-                v[f,feature] -= learning_rate*(grad_v[f,feature] + 2*reg_2*v[f,feature])
+                grad_v[f,feature] += mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature]) 
+        self.grad_w0 = grad_w0
+        self.grad_w = grad_w
+        self.grad_v = grad_v
+        
+    cdef _average_and_update(self,int num_samples):
+        #update w0,w,v,learning_rate, set grad_w0,grad_w,grad_v to be zeros
+        cdef DOUBLE w0 = self.w0
+        cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] w = self.w
+        cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] v = self.v
+        cdef DOUBLE grad_w0 = self.grad_w0
+        cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] grad_w = self.grad_w
+        cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] grad_v = self.grad_v
+        cdef DOUBLE learning_rate = self.learning_rate
+        cdef DOUBLE mynum_samples = num_samples
+        grad_w0 = grad_w0/mynum_samples
+        grad_w = grad_w/mynum_samples
+        grad_v = grad_v/mynum_samples
+        learning_rate = 1.0/(self.t + self.t0)
 
-        self.learning_rate = learning_rate
+        w0 = w0 - learning_rate*grad_w0
+        w = w - learning_rate*grad_w
+        v = v - learning_rate*grad_v
+
+        self.grad_w0 = 0.0
+        self.grad_w = np.zeros((self.num_attributes))
+        self.grad_v = np.zeros((self.num_factors,self.num_attributes))
         self.w0 = w0
         self.w = w
         self.v = v
-        self.grad_w = grad_w
-        self.grad_v = grad_v
-        self.t +=1
+        self.t += 1
         self.count +=1
 
+
+        
     def fit(self, CSRDataset dataset):
         cdef Py_ssize_t n_samples = dataset.n_samples
         cdef DOUBLE * x_data_ptr = NULL
@@ -271,6 +286,7 @@ cdef class FM_fast(object):
         cdef int itercount=0
         cdef int xnnz
         cdef DOUBLE y = 0.0
+
         cdef unsigned int count =0
         cdef unsigned int epoch = 0
         cdef unsigned int i =0
@@ -278,11 +294,12 @@ cdef class FM_fast(object):
         cdef DOUBLE min_early_stop = 10000.0
         cdef unsigned int count_early_stop = 0
 
-        num_sample_iter = 100
-        if self.verbose > 0:
-            cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
-            fh = open('./results/'+self.dataname+'/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_.txt','w')
-            fhtest = open('./results/'+self.dataname+'/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_.txt','w')
+        num_sample_iter = 200
+        cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
+        if(self.verbose > 0):
+            fh = open('./results/'+self.dataname+'/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            fhtest = open('./results/'+self.dataname+'/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            #在文件的开头简单介绍一下参数设置
             fhtest.write('reg_1:'+str(self.reg_1)+'\n')
             fhtest.write('reg_2:'+str(self.reg_2)+'\n')
             fhtest.write('num_factors:'+str(self.num_factors)+'\n')
@@ -291,9 +308,13 @@ cdef class FM_fast(object):
             training_errors = []
             testing_errors = []
         for epoch in range(self.n_iter):
+            if self.verbose >0 :
+                pre_test = self._predict(self.x_test)
+                pre_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
+                testing_errors.append(pre_error)
+
             self.count = 0
             self.sumloss = 0
-
             if self.shuffle_training:
                 dataset.shuffle(self.seed)
 
@@ -301,22 +322,24 @@ cdef class FM_fast(object):
 
             for i in selected_list:
                 dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
-
-                #for i in range(n_samples):
-                #dataset.next(&x_data_ptr, & x_ind_ptr, &xnnz,&y,&sample_weight)
-                self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
+                #mini batch
+                self._update_grad_minibatch(x_data_ptr,x_ind_ptr,xnnz,y)
+            #average gradient
+            #set self.w,w0,v to zeros
+            self._average_and_update(num_sample_iter)
+               
             if self.verbose > 0:
                 if(itercount % 10 ==0):
-                    strtemp = "Training MSE--"+str(self.sumloss/self.count)+"\n"
+                    strtemp = "Training MSE--"+str(self.sumloss/(self.count*num_sample_iter))+"\n"
                     print(strtemp)
-                    fh.write(str(self.sumloss/self.count)+'\n')
+                    fh.write(str(self.sumloss/(self.count*num_sample_iter))+'\n')
                     training_errors.append(self.sumloss/self.count)
                     iter_error = 0.0
                     pre_test = self._predict(self.x_test)
                     iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
                     print("=======test_error===="+str(iter_error))
-                    fhtest.write(str(iter_error)+'\n')
                     testing_errors.append(iter_error)
+                    fhtest.write(str(iter_error)+'\n')
             else:
                 iter_error = 0.0
                 pre_test = self._predict(self.x_test)
@@ -328,18 +351,19 @@ cdef class FM_fast(object):
                     self.early_stop_w = self.w
                     self.early_stop_v = self.v
                     count_early_stop = 0
-                if(count_early_stop == 20):
-                    print('-----EARLY-STOPPING---')
+                if(count_early_stop == 50):
+                    print('----EARLY-STOPPING-')
                     self.w0 = self.early_stop_w0
                     self.w = self.early_stop_w
                     self.v = self.early_stop_v
                     break
 
             itercount +=1
+        
         if(self.verbose>0):
-            self.draw_line(training_errors,testing_errors,cur_time)
             fh.close()
             fhtest.close()
+            self.draw_line(training_errors,testing_errors,cur_time)
 
     def draw_line(self,training_errors,testing_errors,cur_time):
         lentrain = len(training_errors)
@@ -350,7 +374,6 @@ cdef class FM_fast(object):
         dataname = './results/'+self.dataname+'/figures/'+cur_time+'_reg_1_'+str(self.reg_1)+'_reg_2_'+str(self.reg_2)+'_k_'+str(self.num_factors)
         plt.savefig(dataname+'.png')
         plt.show()
-
 
 
 cdef _squareq(np.ndarray a, INTEGER b):

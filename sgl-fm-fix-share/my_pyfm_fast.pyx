@@ -48,6 +48,9 @@ cdef class FM_fast(object):
     cdef double w0
     cdef np.ndarray w
     cdef np.ndarray v
+    cdef double early_stop_w0
+    cdef np.ndarray early_stop_w
+    cdef np.ndarray early_stop_v
     cdef int num_factors
     cdef int num_attributes
     cdef int n_iter
@@ -75,7 +78,7 @@ cdef class FM_fast(object):
     cdef DOUBLE  reg_0
     cdef DOUBLE reg_1
     cdef DOUBLE reg_2
-
+    cdef DOUBLE grad_w0
     cdef np.ndarray grad_w
     cdef np.ndarray grad_v
     cdef np.ndarray U_v
@@ -117,6 +120,9 @@ cdef class FM_fast(object):
         self.w0 = w0
         self.w = w
         self.v = v
+        self.early_stop_w0 = w0
+        self.early_stop_w = w
+        self.early_stop_v = v
         self.num_factors = num_factors
         self.num_attributes = num_attributes
         self.n_iter = n_iter
@@ -456,17 +462,22 @@ cdef class FM_fast(object):
                     testing_errors.append(iter_error)
                     fhtest.write(str(iter_error)+'\n')
             else:
-                if(itercount % 10 == 0):
-                    iter_error = 0.0
-                    pre_test = self._predict(self.x_test)
-                    iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
-                    count_early_stop += 1
-                    if(iter_error < min_early_stop):
-                        min_early_stop = iter_error
-                        count_early_stop = 0
-                    if(count_early_stop == 50):
-                        print('----EARLY-STOPPING-')
-                        break
+                iter_error = 0.0
+                pre_test = self._predict(self.x_test)
+                iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
+                count_early_stop += 1
+                if(iter_error < min_early_stop):
+                    min_early_stop = iter_error
+                    self.early_stop_w0 = self.w0
+                    self.early_stop_w = self.w
+                    self.early_stop_v = self.v
+                    count_early_stop = 0
+                if(count_early_stop == 50):
+                    print('----EARLY-STOPPING-')
+                    self.w0 = self.early_stop_w0
+                    self.w = self.early_stop_w
+                    self.v = self.early_stop_v
+                    break
 
             itercount +=1
         

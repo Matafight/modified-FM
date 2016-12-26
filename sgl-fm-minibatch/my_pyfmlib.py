@@ -25,7 +25,8 @@ class FM:
                  seed = 28,
                  dataname = "unknown",
                  reg_1 = 0.01,
-                 reg_2 = 0.01):
+                 reg_2 = 0.01,
+                 gamma = 0.1):
         self.num_factors=num_factors
         self.num_iter = num_iter
         self.sum = np.zeros(self.num_factors)
@@ -50,6 +51,7 @@ class FM:
         self.reg_0 = 0.01
         self.reg_1 = reg_1
         self.reg_2 = reg_2
+        self.gamma = gamma
         #local parameters in the lambda update
         #omit here
         self.dataname = dataname
@@ -122,6 +124,7 @@ class FM:
                                    self.dataname,
                                    self.reg_1,
                                    self.reg_2,
+                                   self.gamma,
                                    x_test_data,
                                    y_test)
         return self.fm_fast.fit(X_train_dataset)

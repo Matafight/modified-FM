@@ -7,7 +7,7 @@ from multiprocessing import Process, Lock
 class cross_val_regularization:
 
     def __init__(self,train_data,train_label,num_factors,dataname):
-        self.reg_set = [0.001,0.01,0.1,1,10,100]
+        self.reg_set = [0.00001,0.0001,0.001,0.01,0.1,1]
         self.length = len(self.reg_set)
         self.numfactors = num_factors
         self.train_data = train_data
@@ -44,7 +44,7 @@ class cross_val_regularization:
         lock = Lock()
         for reg_1_cro in range(self.length):
             for reg_2_cro in range(self.length):
-                fm = pylibfm.FM(num_factors = self.numfactors,num_iter=50,verbose = False,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=self.dataname,reg_1 = self.reg_set[reg_1_cro], reg_2 = self.reg_set[reg_2_cro])
+                fm = pylibfm.FM(num_factors = self.numfactors,num_iter=100,verbose = False,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=self.dataname,reg_1 = self.reg_set[reg_1_cro], reg_2 = self.reg_set[reg_2_cro])
                 fm.fit(x_train,y_train,x_test,y_test)
                 pre_label = fm.predict(x_test)
                 diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size

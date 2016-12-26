@@ -285,8 +285,8 @@ cdef class FM_fast(object):
 
         num_sample_iter = 20
         cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
-        fh = open('./results/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+self.dataname+'.txt','w')
-        fhtest = open('./results/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+self.dataname+'.txt','w')
+        fh = open('./results/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_'+self.dataname+'.txt','w')
+        fhtest = open('./results/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_'+self.dataname+'.txt','w')
         fhtest.write('reg_1:'+str(self.reg_1)+'\n')
         fhtest.write('reg_2:'+str(self.reg_2)+'\n')
         fhtest.write('num_factors:'+str(self.num_factors)+'\n')
@@ -295,11 +295,6 @@ cdef class FM_fast(object):
         training_errors = []
         testing_errors = []
         for epoch in range(self.n_iter):
-            if self.verbose >0 :
-                strtemp = "--Epoch--"+str(epoch+1)+"\n"
-                print(strtemp)
-                fh.write(strtemp)
-                #print("--Epoch %d" %(epoch + 1))
             self.count = 0
             self.sumloss = 0
 
@@ -319,18 +314,18 @@ cdef class FM_fast(object):
                     # lambda step
                     pass
             if self.verbose > 0:
-                strtemp = "Training MSE--"+str(self.sumloss/self.count)+"\n"
-                print(strtemp)
-                fh.write(strtemp)
-                training_errors.append(self.sumloss/self.count)
+               
 
-                #print ("Training %s:%.5f"%("MSE",(self.sumloss/self.count)))
                 if(itercount % 10 ==0):
+                    strtemp = "Training MSE--"+str(self.sumloss/self.count)+"\n"
+                    print(strtemp)
+                    fh.write(str(self.sumloss/self.count)+'\n')
+                    training_errors.append(self.sumloss/self.count)
                     iter_error = 0.0
                     pre_test = self._predict(self.x_test)
                     iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
                     print("=======test_error===="+str(iter_error))
-                    fhtest.write("iter: "+str(itercount)+" test_error: "+str(iter_error)+'\n')
+                    fhtest.write(str(iter_error)+'\n')
                     testing_errors.append(iter_error)
             itercount +=1
         if(self.verbose>0):
@@ -344,7 +339,7 @@ cdef class FM_fast(object):
         a,subp = plt.subplots(2)
         subp[0].plot(range(lentrain),training_errors)
         subp[1].plot(range(lentest),testing_errors)
-        dataname = './results/figures/'+self.dataname+cur_time+'_reg_1_'+str(self.reg_1)+'_reg_2_'+str(self.reg_2)+'k_'+str(self.num_factors)
+        dataname = './results/figures/'+self.dataname+cur_time+'_reg_1_'+str(self.reg_1)+'_reg_2_'+str(self.reg_2)+'_k_'+str(self.num_factors)
         plt.savefig(dataname+'.png')
         plt.show()
 

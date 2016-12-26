@@ -15,7 +15,6 @@ class cross_val_regularization:
         self.dataname = dataname
         self.reg_ret = np.zeros((len(self.reg_set),len(self.reg_set)))
     def sele_para(self):
-        #x_train,x_test,y_train,y_test = cross_validation.train_test_split(self.train_data,self.train_label,test_size = 0.1)
 
         kf = KFold(np.shape(self.train_data)[0],n_folds = 5)
         count = 1
@@ -46,7 +45,7 @@ class cross_val_regularization:
         for reg_1_cro in range(self.length):
             for reg_2_cro in range(self.length):
                 fm = pylibfm.FM(num_factors = self.numfactors,num_iter=50,verbose = False,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=self.dataname,reg_1 = self.reg_set[reg_1_cro], reg_2 = self.reg_set[reg_2_cro])
-                fm.fit(x_train,y_train,1,1)
+                fm.fit(x_train,y_train,1,2)
                 pre_label = fm.predict(x_test)
                 diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
                 lock.acquire()

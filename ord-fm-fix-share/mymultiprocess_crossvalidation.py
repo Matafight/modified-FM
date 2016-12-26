@@ -50,8 +50,6 @@ class cross_val_regularization:
                 fm.fit(x_train,y_train,1,1)
                 pre_label = fm.predict(x_test)
                 diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
-                #print("--In "+ str(count-1) + " fold  "+" reg_1 = "+str(self.reg_set[reg_1_cro]) + "reg_2 = "+str( self.reg_set[reg_2_cro]))
-                #print("validation_error:---"+str(diff)+'\n')
                 lock.acquire()
                 try:
                     self.reg_ret[reg_1_cro,reg_2_cro] = self.reg_ret[reg_1_cro,reg_2_cro] + diff

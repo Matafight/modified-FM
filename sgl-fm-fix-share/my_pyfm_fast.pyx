@@ -395,27 +395,22 @@ cdef class FM_fast(object):
             
 
 
-    def fit(self, CSRDataset dataset, CSRDataset validation_dataset):
+    def fit(self, CSRDataset dataset):
         cdef Py_ssize_t n_samples = dataset.n_samples
-        cdef Py_ssize_t n_validation_samples = validation_dataset.n_samples
         cdef DOUBLE * x_data_ptr = NULL
         cdef INTEGER * x_ind_ptr = NULL
-        cdef DOUBLE * validation_x_data_ptr = NULL
-        cdef DOUBLE * validation_x_ind_ptr =NULL
 
         #helper variables
         cdef int itercount=0
         cdef int xnnz
         cdef DOUBLE y = 0.0
-        cdef DOUBLE validation_y = 0.0
-        cdef int validation_xnnz
+
         cdef unsigned int count =0
         cdef unsigned int epoch = 0
         cdef unsigned int i =0
         cdef DOUBLE sample_weight = 1.0
-        cdef DOUBLE validation_sample_weight=1.0
 
-        num_sample_iter = 20
+        num_sample_iter = 1000
         cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
         fh = open('./results/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_'+self.dataname+'.txt','w')
         fhtest = open('./results/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_'+self.dataname+'.txt','w')
@@ -429,8 +424,11 @@ cdef class FM_fast(object):
         testing_errors = []
         for epoch in range(self.n_iter):
             if self.verbose >0 :
-                strtemp = "--Epoch--"+str(epoch+1)+"\n"
-                print(strtemp)
+                pre_test = self._predict(self.x_test)
+                pre_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
+                testing_errors.append(pre_error)
+
+
             self.count = 0
             self.sumloss = 0
 

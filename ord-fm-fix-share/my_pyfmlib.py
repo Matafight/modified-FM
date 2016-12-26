@@ -88,15 +88,10 @@ class FM:
         verbose = self._bool_to_int(self.verbose)
         learning_rate_schedule = self._get_learning_rate_type(self.learning_rate_schedule)
 
-            #use sklearn to create a validation dataset for lambda updates
-        if self.verbose == True:
-            print("creating validation dataset of %.2f of training"%self.validation_size)
 
-        X_train,validation,train_labels,validation_labels = cross_validation.train_test_split(X,y, test_size = self.validation_size)
-        self.num_attribute = X_train.shape[1]
+        self.num_attribute = X.shape[1]
 
-        X_train_dataset = _make_dataset(X_train,train_labels)
-        validation_dataset = _make_dataset(validation,validation_labels)
+        X_train_dataset = _make_dataset(X,y)
 
         if self.verbose==True:
             x_test_data = _make_dataset(x_test,np.ones(x_test.shape[0]))
@@ -133,7 +128,7 @@ class FM:
                                    self.reg_2,
                                    x_test_data,
                                    y_test)
-        return self.fm_fast.fit(X_train_dataset,validation_dataset)
+        return self.fm_fast.fit(X_train_dataset)
 
     def predict(self,X):
         sparse_X = _make_dataset(X,np.ones(X.shape[0]))

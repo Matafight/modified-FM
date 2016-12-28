@@ -25,8 +25,7 @@ class FM:
                  seed = 28,
                  dataname = "unknown",
                  reg_1 = 0.01,
-                 reg_2 = 0.01,
-                 gamma = 0.1):
+                 reg_2 = 0.01):
         self.num_factors=num_factors
         self.num_iter = num_iter
         self.sum = np.zeros(self.num_factors)
@@ -51,7 +50,6 @@ class FM:
         self.reg_0 = 0.01
         self.reg_1 = reg_1
         self.reg_2 = reg_2
-        self.gamma = gamma
         #local parameters in the lambda update
         #omit here
         self.dataname = dataname
@@ -90,11 +88,15 @@ class FM:
         verbose = self._bool_to_int(self.verbose)
         learning_rate_schedule = self._get_learning_rate_type(self.learning_rate_schedule)
 
+
         #self.num_attribute = X.shape[1]
+        #self.num_attribute = 9940
         self.num_attribute = num_attributes
         X_train_dataset = _make_dataset(X,y)
 
+        #x_test_data = _make_dataset(x_test,np.ones(x_test.shape[0]))
         x_test_data = _make_dataset(x_test,y_test)
+
         #setup params
         self.w0 = 0.0
         self.w = np.zeros(self.num_attribute)
@@ -123,7 +125,6 @@ class FM:
                                    self.dataname,
                                    self.reg_1,
                                    self.reg_2,
-                                   self.gamma,
                                    x_test_data,
                                    y_test)
         return self.fm_fast.fit(X_train_dataset)

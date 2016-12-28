@@ -10,7 +10,7 @@ class cross_val_regularization:
         self.reg_set = [0.00001,0.0001,0.001,0.01,0.1,1]
         self.length = len(self.reg_set)
         self.numfactors = num_factors
-        self.num_attributes = num_attributes
+        self.num_attributes= num_attributes
         self.train_data = train_data
         self.train_label = train_label
         self.dataname = dataname
@@ -23,6 +23,7 @@ class cross_val_regularization:
         for train_index,valid_index in kf:
             x_train,x_test = self.train_data[train_index],self.train_data[valid_index]
             y_train,y_test = self.train_label[train_index],self.train_label[valid_index]
+            #print("-----"+str(count)+" fold"+"--total 5 fold")
             if count >= 1:
                 st = Process(target = self.sub_thread,args = (x_train,y_train,x_test,y_test,count))
                 threadlist.append(st)
@@ -31,20 +32,21 @@ class cross_val_regularization:
             st.start()
         for st in threadlist:
             st.join()
+
         print("---------ALL subthread completed")
 
 
         #find the index of the minimum validationerror
         ind = np.argmin(self.reg_ret)
         best_reg_ind = np.unravel_index(ind,[self.length,self.length])
-        # reg_1: best_reg[0],ret_2 : best_reg[1]
-        best_reg = [self.reg_set[best_reg_ind[0]],self.reg_set[best_reg_ind[1]]]
+        best_reg=[self.reg_set[best_reg_ind[0]],self.reg_set[best_reg_ind[1]]]
         return best_reg
     def sub_thread(self,x_train,y_train,x_test,y_test,seq):
         print("---Runing---"+str(seq)+"---subthread")
         lock = Lock()
         for reg_1_cro in range(self.length):
             for reg_2_cro in range(self.length):
+                print(str(seq)+':'+str(reg_1_cro)+':'+str(reg_2_cro))
                 fm = pylibfm.FM(num_factors = self.numfactors,num_iter=500,verbose = False,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=self.dataname,reg_1 = self.reg_set[reg_1_cro], reg_2 = self.reg_set[reg_2_cro])
                 fm.fit(x_train,y_train,x_test,y_test,self.num_attributes)
                 pre_label = fm.predict(x_test)

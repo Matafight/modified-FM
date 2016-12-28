@@ -70,6 +70,6 @@ if __name__=='__main__':
     x_train=v.fit_transform(train_data)
     x_test = v.fit_transform(test_data)
 
-    #performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label)
-    performance_with_k(train_data_name,x_train,train_label,x_test,test_label)
+    performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label)
+    #performance_with_k(train_data_name,x_train,train_label,x_test,test_label)
    

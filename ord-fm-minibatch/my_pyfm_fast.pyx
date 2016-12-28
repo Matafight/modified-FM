@@ -85,6 +85,7 @@ cdef class FM_fast(object):
     cdef int count # what for?
     cdef CSRDataset x_test
     cdef np.ndarray y_test
+    cdef INTEGER ifall
     def __init__(self,
                   np.ndarray[DOUBLE,ndim=1,mode='c'] w,
                   np.ndarray[DOUBLE, ndim=2,mode='c'] v,
@@ -109,7 +110,8 @@ cdef class FM_fast(object):
                   double reg_1,
                   double reg_2,
                   CSRDataset x_test,
-                  np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test):
+                  np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test,
+                  int ifall):
         self.w0 = w0
         self.w = w
         self.v = v
@@ -147,6 +149,7 @@ cdef class FM_fast(object):
 
         self.x_test = x_test
         self.y_test = y_test
+        self.ifall = ifall
 
     cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz):
         #helper variable
@@ -280,8 +283,10 @@ cdef class FM_fast(object):
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE min_early_stop = sys.maxint
         cdef unsigned int count_early_stop = 0
-
-        num_sample_iter = n_samples
+        if self.ifall > 0:
+            num_sample_iter = n_samples
+        else:
+            num_sample_iter = 100
         if self.verbose > 0:
             cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
             fh = open('./results/'+self.dataname+'/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_.txt','w')

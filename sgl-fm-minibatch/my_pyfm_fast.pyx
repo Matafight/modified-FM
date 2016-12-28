@@ -73,7 +73,8 @@ cdef class FM_fast(object):
     cdef INTEGER shuffle_training
     cdef INTEGER seed
     cdef INTEGER verbose
-
+    
+    cdef INTEGER ifall
     cdef DOUBLE  reg_0
     cdef DOUBLE reg_1
     cdef DOUBLE reg_2
@@ -116,7 +117,8 @@ cdef class FM_fast(object):
                   double reg_2,
                   double gamma,
                   CSRDataset x_test,
-                  np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test):
+                  np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test,
+                  INTEGER ifall):
         self.w0 = w0
         self.w = w
         self.v = v
@@ -158,6 +160,7 @@ cdef class FM_fast(object):
         self.gamma = gamma
         self.x_test = x_test
         self.y_test = y_test
+        self.ifall = ifall
 
     cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,INTEGER xnnz):
         #helper variable
@@ -312,8 +315,10 @@ cdef class FM_fast(object):
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE min_early_stop = sys.maxint
         cdef   INTEGER count_early_stop = 0
-
-        num_sample_iter = n_samples
+        if self.ifall > 0:
+            num_sample_iter = n_samples
+        else:
+            num_sample_iter  = 100
         cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
         if(self.verbose > 0):
             fh = open('./results/'+self.dataname+'/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')

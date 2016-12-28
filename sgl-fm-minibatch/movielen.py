@@ -32,7 +32,7 @@ def performance_with_k(dataname,x_train,y_train,x_test,y_test):
         file_varing_k.write('k:'+str(num_factors))
         #gamma is useless  when using FOBO 
         fm = pylibfm.FM(num_factors = num_factors,num_iter = 1000,verbose = False,task = 'regression',initial_learning_rate=0.001,learning_rate_schedule='optimal',dataname = dataname,reg_1 = reg_1,reg_2 = reg_2,gamma = 5)
-        fm.fit(x_train,y_train,x_test,y_test)
+        fm.fit(x_train,y_train,x_test,y_test,ifall = False)
         pre_label = fm.predict(x_test)
         diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
         file_varing_k.write(str(diff)+'\n')
@@ -45,8 +45,8 @@ def performance_cross_validation(dataname,x_train,y_train,x_test,y_test,num_attr
     best_reg = mycv.sele_para()
     #best_reg = [0.0010,0.0010]
     fm = pylibfm.FM(num_factors = num_factors,num_iter=1000,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=dataname,reg_1 = best_reg[0], reg_2 = best_reg[1],gamma = 5)
-
-    fm.fit(x_train,y_train,x_test,y_test,num_attributes)
+    #add a boolean flag to decide if use all samples for each iteration
+    fm.fit(x_train,y_train,x_test,y_test,num_attributes,ifall = True)
     pre_label = fm.predict(x_test)
 
     diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
@@ -75,6 +75,7 @@ if __name__=='__main__':
         num_attributes = 9940
     else:
         num_attributes = 2652
+    print('dataset:'+train_data_name+'\n')
     print('num_attributes:'+str(num_attributes))
     performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
     #performance_with_k(train_data_name,x_train,train_label,x_test,test_label)

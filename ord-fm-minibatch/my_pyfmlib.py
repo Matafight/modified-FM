@@ -76,7 +76,7 @@ class FM:
             return 0
 
 
-    def fit(self,X,y,x_test,y_test,num_attributes):
+    def fit(self,X,y,x_test,y_test,num_attributes,ifall):
         if type(y)!= np.ndarray:
             y = np.array(y)
         self._validate_params()
@@ -103,6 +103,10 @@ class FM:
         np.random.seed(seed=self.seed)
         self.v = np.random.normal(scale = self.init_stdev,size=(self.num_factors,self.num_attribute))
         task = 0
+        if ifall ==True:
+            all_flag = 1
+        else:
+            all_flag = 0
         self.fm_fast = FM_fast(self.w,
                                    self.v,
                                    self.num_factors,
@@ -126,7 +130,8 @@ class FM:
                                    self.reg_1,
                                    self.reg_2,
                                    x_test_data,
-                                   y_test)
+                                   y_test,
+                                   all_flag)
         return self.fm_fast.fit(X_train_dataset)
 
     def predict(self,X):

@@ -275,7 +275,7 @@ cdef class FM_fast(object):
         cdef unsigned int epoch = 0
         cdef unsigned int i =0
         cdef DOUBLE sample_weight = 1.0
-        cdef DOUBLE min_early_stop = 10000.0
+        cdef DOUBLE min_early_stop = sys.maxint
         cdef unsigned int count_early_stop = 0
 
         num_sample_iter = 100

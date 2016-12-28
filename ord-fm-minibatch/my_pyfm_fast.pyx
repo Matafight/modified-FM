@@ -147,7 +147,6 @@ cdef class FM_fast(object):
 
         self.x_test = x_test
         self.y_test = y_test
-        print('num_attributes:'+str(num_attributes))
 
     cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz):
         #helper variable
@@ -331,7 +330,7 @@ cdef class FM_fast(object):
                     self.early_stop_w = self.w
                     self.early_stop_v = self.v
                     count_early_stop = 0
-                if(count_early_stop == 20):
+                if(count_early_stop == 50):
                     print('-----EARLY-STOPPING---')
                     self.w0 = self.early_stop_w0
                     self.w = self.early_stop_w

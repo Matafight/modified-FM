@@ -6,10 +6,11 @@ from sklearn.cross_validation import KFold
 from multiprocessing import Process, Lock
 class cross_val_regularization:
 
-    def __init__(self,train_data,train_label,num_factors,dataname):
+    def __init__(self,train_data,train_label,num_factors,dataname,num_attributes):
         self.reg_set = [0.00001,0.0001,0.001,0.01,0.1,1]
         self.length = len(self.reg_set)
         self.numfactors = num_factors
+        self.num_attributes = num_attributes
         self.train_data = train_data
         self.train_label = train_label
         self.dataname = dataname
@@ -45,7 +46,7 @@ class cross_val_regularization:
         for reg_1_cro in range(self.length):
             for reg_2_cro in range(self.length):
                 fm = pylibfm.FM(num_factors = self.numfactors,num_iter=100,verbose = False,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=self.dataname,reg_1 = self.reg_set[reg_1_cro], reg_2 = self.reg_set[reg_2_cro])
-                fm.fit(x_train,y_train,x_test,y_test)
+                fm.fit(x_train,y_train,x_test,y_test,self.num_attributes)
                 pre_label = fm.predict(x_test)
                 diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
                 lock.acquire()

@@ -76,7 +76,7 @@ class FM:
             return 0
 
 
-    def fit(self,X,y,x_test,y_test):
+    def fit(self,X,y,x_test,y_test,num_attributes):
         if type(y)!= np.ndarray:
             y = np.array(y)
         self._validate_params()
@@ -89,11 +89,12 @@ class FM:
         learning_rate_schedule = self._get_learning_rate_type(self.learning_rate_schedule)
 
 
-        self.num_attribute = X.shape[1]
+        self.num_attribute = num_attributes
 
         X_train_dataset = _make_dataset(X,y)
 
-        x_test_data = _make_dataset(x_test,np.ones(x_test.shape[0]))
+        #x_test_data = _make_dataset(x_test,np.ones(x_test.shape[0]))
+        x_test_data = _make_dataset(x_test,y_test)
         #setup params
         self.w0 = 0.0
         self.w = np.zeros(self.num_attribute)

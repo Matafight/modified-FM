@@ -301,9 +301,6 @@ cdef class FM_fast(object):
 
             for i in selected_list:
                 dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
-
-                #for i in range(n_samples):
-                #dataset.next(&x_data_ptr, & x_ind_ptr, &xnnz,&y,&sample_weight)
                 self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
             if self.verbose > 0:
                 if(itercount % 10 ==0):
@@ -328,7 +325,7 @@ cdef class FM_fast(object):
                     self.early_stop_w = self.w
                     self.early_stop_v = self.v
                     count_early_stop = 0
-                if(count_early_stop == 20):
+                if(count_early_stop == 50):
                     print('-----EARLY-STOPPING---')
                     self.w0 = self.early_stop_w0
                     self.w = self.early_stop_w
@@ -435,9 +432,6 @@ cdef class CSRDataset:
 
     cdef void next(self, DOUBLE **x_data_ptr, INTEGER **x_ind_ptr,
                    int *nnz, DOUBLE *y, DOUBLE *sample_weight):
-        #这个next 函数是用来干嘛的?
-        #就是让下一个数据 指向引用参数
-        #offset?
         cdef int current_index = self.current_index
         if current_index >= (self.n_samples - 1):
             current_index = -1
@@ -449,7 +443,8 @@ cdef class CSRDataset:
         x_data_ptr[0] = self.X_data_ptr + offset
         x_ind_ptr[0] = self.X_indices_ptr + offset
         nnz[0] = self.X_indptr_ptr[sample_idx + 1] - offset
-        sample_weight[0] = self.sample_weight_data[sample_idx]
+        #this is wrong when the num of data increases to 1 million
+        #sample_weight[0] = self.sample_weight_data[sample_idx]
 
         self.current_index = current_index
     cdef void data_index(self,DOUBLE **x_data_ptr,INTEGER ** x_ind_ptr, int * nnz, DOUBLE *y, DOUBLE * sample_weight,INTEGER new_index):
@@ -459,6 +454,7 @@ cdef class CSRDataset:
         x_data_ptr[0] = self.X_data_ptr + offset
         x_ind_ptr[0] = self.X_indices_ptr + offset
         nnz[0] = self.X_indptr_ptr[sample_idx + 1] - offset
-        sample_weight[0] = self.sample_weight_data[sample_idx]
+
+        #sample_weight[0] = self.sample_weight_data[sample_idx]
     cdef void shuffle(self, seed):
         np.random.RandomState(seed).shuffle(self.index)

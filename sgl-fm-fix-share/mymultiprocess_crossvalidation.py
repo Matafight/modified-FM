@@ -7,7 +7,7 @@ from multiprocessing import Process, Lock
 class cross_val_regularization:
 
     def __init__(self,train_data,train_label,num_factors,dataname,num_attributes):
-        self.reg_set = [0.00001,0.0001,0.001,0.01,0.1,1]
+        self.reg_set = [0.00001,0.0001,0.001,0.01,0.1,1,10,100,1000,10000]
         self.length = len(self.reg_set)
         self.numfactors = num_factors
         self.num_attributes = num_attributes

@@ -39,7 +39,7 @@ def performance_with_k(data_name,x_train,y_train,x_test,y_test,num_attributes):
         file_varing_k.write('k:'+str(num_factors))
         #gamma is useless  when using FOBO 
         print('crossvalidation finished---')
-        fm = pylibfm.FM(num_factors = num_factors,num_iter = 1000,verbose = False,task = 'regression',initial_learning_rate=0.001,learning_rate_schedule='optimal',dataname = data_name,reg_1 = reg_1,reg_2 = reg_2,gamma = 5)
+        fm = pylibfm.FM(num_factors = num_factors,num_iter = 1000,verbose = False,task = 'regression',initial_learning_rate=0.001,dataname = data_name,reg_1 = reg_1,reg_2 = reg_2,gamma = 5)
         fm.fit(x_train,y_train,x_test,y_test,num_attributes)
         pre_label = fm.predict(x_test)
         diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
@@ -52,7 +52,7 @@ def performance_cross_validation(data_name,x_train,y_train,x_test,y_test,num_att
     #mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors, dataname = train_data_name,num_attributes = num_attributes)
     #best_reg = mycv.sele_para()
     best_reg = [0.0010,0.0010]
-    fm = pylibfm.FM(num_factors = num_factors,num_iter=1000,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=data_name,reg_1 = best_reg[0], reg_2 = best_reg[1],gamma = 5)
+    fm = pylibfm.FM(num_factors = num_factors,num_iter=1000,verbose = True,task="regression",initial_learning_rate=0.001,dataname=data_name,reg_1 = best_reg[0], reg_2 = best_reg[1],gamma = 5)
 
     fm.fit(x_train,y_train,x_test,y_test,num_attributes)
     pre_label = fm.predict(x_test)

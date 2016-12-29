@@ -14,11 +14,7 @@ np.import_array()
 ctypedef np.float64_t DOUBLE
 ctypedef np.int32_t INTEGER
 
-# MODEL constants
 
-#control learning_rate
-DEF OPTIMAL = 0
-DEF INVERSE_SCALING = 1
 
 cdef class FM_fast(object):
     """
@@ -31,15 +27,12 @@ cdef class FM_fast(object):
     k0 : int
     k1 : int
     w0 : double
+    t and t0 are used for learning_rate update
     t : double
     t0 : double
-    #what's this used for?
-    l : double
-    power_t :double
     min_target : double
     max_target : double
     eta0 : double
-    learning_rate_schedule : int
     shuffle_training : int
     task : int
     seed : int
@@ -60,14 +53,11 @@ cdef class FM_fast(object):
     #why use the different DOUBLE type from w0
     cdef DOUBLE t
     cdef DOUBLE t0
-    cdef DOUBLE l
-    cdef DOUBLE power_t
     cdef DOUBLE min_target
     cdef DOUBLE max_target
     cdef np.ndarray sum_
     cdef np.ndarray sum_sqr
     cdef int task
-    cdef int learning_rate_schedule
     cdef double learning_rate
     cdef double init_learning_rate 
         
@@ -87,7 +77,7 @@ cdef class FM_fast(object):
     cdef DOUBLE T_rda # global T for RDA algorithm
     cdef str dataname
     cdef DOUBLE sumloss
-    cdef int count # what for?
+    cdef int count 
     cdef CSRDataset x_test
     cdef np.ndarray y_test
     cdef DOUBLE gamma
@@ -102,11 +92,9 @@ cdef class FM_fast(object):
                   double w0,
                   double t,
                   double t0,
-                  double power_t,
                   double min_target,
                   double max_target,
                   double eta0,
-                  int learning_rate_schedule,
                   int shuffle_training,
                   int task,
                   int seed,
@@ -132,13 +120,11 @@ cdef class FM_fast(object):
         self.t0  = 1
         self.learning_rate = eta0
         self.init_learning_rate = eta0
-        self.power_t  = power_t
         self.min_target = min_target
         self.max_target = max_target
         self.sum_ = np.zeros(self.num_factors)
         self.sum_sqr= np.zeros(self.num_factors)
         self.task = task
-        self.learning_rate_schedule = learning_rate_schedule
         self.shuffle_training = shuffle_training
         self.seed = seed
         self.verbose = verbose

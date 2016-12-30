@@ -401,7 +401,7 @@ cdef class FM_fast(object):
         cdef unsigned int epoch = 0
         cdef unsigned int i =0
         cdef DOUBLE sample_weight = 1.0
-        cdef DOUBLE min_early_stop = 10000.0
+        cdef DOUBLE min_early_stop = sys.maxint
         cdef unsigned int count_early_stop = 0
 
         num_sample_iter = 100
@@ -425,8 +425,8 @@ cdef class FM_fast(object):
 
             self.count = 0
             self.sumloss = 0
-            if self.shuffle_training:
-                dataset.shuffle(self.seed)
+            #if self.shuffle_training:
+            #    dataset.shuffle(self.seed)
 
             selected_list = random.sample(range(n_samples),num_sample_iter)
 
@@ -451,6 +451,8 @@ cdef class FM_fast(object):
                 iter_error = 0.0
                 pre_test = self._predict(self.x_test)
                 iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
+                if(itercount % 10 == 0):
+                    print('In crossvalidation - to avoid sleeping----test_error-----:'+str(iter_error))
                 count_early_stop += 1
                 if(iter_error < min_early_stop):
                     min_early_stop = iter_error

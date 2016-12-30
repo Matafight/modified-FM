@@ -63,10 +63,10 @@ def performance_cross_validation(data_name,x_train,y_train,x_test,y_test,num_att
     print(diff)
 
 if __name__=='__main__':
-    train_data_name = 'u2.base'
-    test_data_name = 'u2.test'
-    #train_data_name = 'ml-1m-train.txt'
-    #test_data_name = 'ml-1m-test.txt'
+    #train_data_name = 'u2.base'
+    #test_data_name = 'u2.test'
+    train_data_name = 'ml-1m-train.txt'
+    test_data_name = 'ml-1m-test.txt'
     new_data_dir = './results/'+train_data_name
     if(os.path.isdir(new_data_dir)):
         print('dir exists')
@@ -86,6 +86,6 @@ if __name__=='__main__':
         num_attributes = 2652
     print('dataset:'+train_data_name+'\n')
     print('num_attributes:'+str(num_attributes))
-    #performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
-    performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
+    performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
+    #performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
    

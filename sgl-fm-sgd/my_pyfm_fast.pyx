@@ -17,27 +17,6 @@ ctypedef np.int32_t INTEGER
 
 
 cdef class FM_fast(object):
-    """
-    parameters:
-    w : np.ndarray[DOUBLE, ndim=1, mode='c']
-    v : np.ndarray[DOUBLE, ndim= 2, mode='c']
-    num_factors : int
-    num_attributes : int
-    n_iter = int
-    k0 : int
-    k1 : int
-    w0 : double
-    t and t0 are used for learning_rate update
-    t : double
-    t0 : double
-    min_target : double
-    max_target : double
-    eta0 : double
-    shuffle_training : int
-    task : int
-    seed : int
-    verbose: int
-    """
     cdef double w0
     cdef np.ndarray w
     cdef np.ndarray v
@@ -47,8 +26,6 @@ cdef class FM_fast(object):
     cdef int num_factors
     cdef int num_attributes
     cdef int n_iter
-    cdef int k0
-    cdef int k1
 
     #why use the different DOUBLE type from w0
     cdef DOUBLE t
@@ -87,15 +64,12 @@ cdef class FM_fast(object):
                   int num_factors,
                   int num_attributes,
                   int n_iter,
-                  int k0,
-                  int k1,
                   double w0,
                   double t,
                   double t0,
                   double min_target,
                   double max_target,
                   double eta0,
-                  int shuffle_training,
                   int task,
                   int seed,
                   int verbose,
@@ -114,8 +88,6 @@ cdef class FM_fast(object):
         self.num_factors = num_factors
         self.num_attributes = num_attributes
         self.n_iter = n_iter
-        self.k0 = k0
-        self.k1 = k1
         self.t = 1
         self.t0  = 1
         self.learning_rate = eta0
@@ -125,7 +97,6 @@ cdef class FM_fast(object):
         self.sum_ = np.zeros(self.num_factors)
         self.sum_sqr= np.zeros(self.num_factors)
         self.task = task
-        self.shuffle_training = shuffle_training
         self.seed = seed
         self.verbose = verbose
         self.reg_0 = 0.0
@@ -157,13 +128,11 @@ cdef class FM_fast(object):
         cdef np.ndarray[DOUBLE,ndim = 1,mode='c'] sum_ = np.zeros(self.num_factors)
         cdef np.ndarray[DOUBLE,ndim = 1,mode='c'] sum_sqr = np.zeros(self.num_factors)
 
-        if self.k0 > 0:
-            result +=w0
-        if self.k1 > 0:
-            for i in range(xnnz):
+        result +=w0
+        for i in range(xnnz):
                 #x is stored in CSR format
-                feature = x_ind_ptr[i]
-                result += w[feature]*x_data_ptr[i]
+            feature = x_ind_ptr[i]
+            result += w[feature]*x_data_ptr[i]
 
         for f in range(self.num_factors):
             sum_[f] = 0.0
@@ -307,11 +276,10 @@ cdef class FM_fast(object):
         #update global bias
         U_w0 = ((t_rda-1)/t_rda)*U_w0 + (1/t_rda)*mult
         w0 = -1*np.sqrt(t_rda)/gamma*U_w0
-        if self.k1 > 0:
-            for i in range(xnnz):
-                feature = x_ind_ptr[i]
-                grad_w[feature]= mult*x_data_ptr[i]
-                U_w[feature] = ((t_rda-1.0)/t_rda) *U_w[feature] + (1.0/t_rda)*grad_w[feature]
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            grad_w[feature]= mult*x_data_ptr[i]
+            U_w[feature] = ((t_rda-1.0)/t_rda) *U_w[feature] + (1.0/t_rda)*grad_w[feature]
 
         for f in range(self.num_factors):
             for i in range(xnnz):

@@ -21,30 +21,7 @@ DEF OPTIMAL = 0
 DEF INVERSE_SCALING = 1
 
 cdef class FM_fast(object):
-    """
-    parameters:
-    w : np.ndarray[DOUBLE, ndim=1, mode='c']
-    v : np.ndarray[DOUBLE, ndim= 2, mode='c']
-    num_factors : int
-    num_attributes : int
-    n_iter = int
-    k0 : int
-    k1 : int
-    w0 : double
-    t : double
-    t0 : double
-    #what's this used for?
-    l : double
-    power_t :double
-    min_target : double
-    max_target : double
-    eta0 : double
-    learning_rate_schedule : int
-    shuffle_training : int
-    task : int
-    seed : int
-    verbose: int
-    """
+  
     cdef double w0
     cdef np.ndarray w
     cdef np.ndarray v
@@ -54,8 +31,6 @@ cdef class FM_fast(object):
     cdef int num_factors
     cdef int num_attributes
     cdef int n_iter
-    cdef int k0
-    cdef int k1
 
     #why use the different DOUBLE type from w0
     cdef DOUBLE t
@@ -92,8 +67,6 @@ cdef class FM_fast(object):
                   int num_factors,
                   int num_attributes,
                   int n_iter,
-                  int k0,
-                  int k1,
                   double w0,
                   double t,
                   double t0,
@@ -121,8 +94,6 @@ cdef class FM_fast(object):
         self.num_factors = num_factors
         self.num_attributes = num_attributes
         self.n_iter = n_iter
-        self.k0 = k0
-        self.k1 = k1
         self.t = 1
         self.t0  = 1
         self.learning_rate = eta0
@@ -166,13 +137,10 @@ cdef class FM_fast(object):
         cdef np.ndarray[DOUBLE,ndim = 1,mode='c'] sum_ = np.zeros(self.num_factors)
         cdef np.ndarray[DOUBLE,ndim = 1,mode='c'] sum_sqr = np.zeros(self.num_factors)
 
-        if self.k0 > 0:
-            result +=w0
-        if self.k1 > 0:
-            for i in range(xnnz):
-                #x is stored in CSR format
-                feature = x_ind_ptr[i]
-                result += w[feature]*x_data_ptr[i]
+        result +=w0
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            result += w[feature]*x_data_ptr[i]
 
         for f in range(self.num_factors):
             sum_[f] = 0.0
@@ -306,7 +274,6 @@ cdef class FM_fast(object):
                 dataset.shuffle(self.seed)
 
             selected_list = random.sample(range(n_samples),num_sample_iter)
-            #dataset.check_dataset(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
             for i in selected_list:
                 dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
                 self._update_grad_minibatch(x_data_ptr,x_ind_ptr,xnnz,y)
@@ -335,7 +302,7 @@ cdef class FM_fast(object):
                     self.early_stop_w = self.w
                     self.early_stop_v = self.v
                     count_early_stop = 0
-                if(count_early_stop == 50):
+                if(count_early_stop == 20):
                     print('-----EARLY-STOPPING---')
                     self.w0 = self.early_stop_w0
                     self.w = self.early_stop_w
@@ -465,7 +432,6 @@ cdef class CSRDataset:
         x_data_ptr[0] = self.X_data_ptr + offset
         x_ind_ptr[0] = self.X_indices_ptr + offset
         nnz[0] = self.X_indptr_ptr[sample_idx + 1] - offset
-        #sample_weight[0] = self.sample_weight_data[sample_idx]
     cdef void shuffle(self, seed):
         np.random.RandomState(seed).shuffle(self.index)
     cdef void check_dataset(self,DOUBLE **x_data_ptr,INTEGER ** x_ind_ptr, int * nnz, DOUBLE *y, DOUBLE * sample_weight,INTEGER new_index):

@@ -22,7 +22,7 @@ def loadData(filename):
 
 
 def performance_with_k(data_name,x_train,y_train,x_test,y_test,num_attributes):
-    candidate_k = [20,40,60,80,100,120]
+    candidate_k = [20]
     cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
     file_varing_k = open('./results/'+data_name+'/performance_varying_k_'+cur_time+'.txt','w')
     for num_factors in candidate_k:
@@ -30,13 +30,11 @@ def performance_with_k(data_name,x_train,y_train,x_test,y_test,num_attributes):
         print('start crossvalidation--')
         mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors, dataname = data_name, num_attributes=num_attributes)
         best_reg = mycv.sele_para()
-        #reg_1 = 0.00001
-        #reg_2 = 0.00001
         reg_1 = best_reg[0]
         reg_2 = best_reg[1]
         file_varing_k.write('reg_1:'+str(reg_1)+'\n')
         file_varing_k.write('reg_2:'+str(reg_2)+'\n')
-        file_varing_k.write('k:'+str(num_factors))
+        file_varing_k.write('k:'+str(num_factors)+'\n')
         print('crossvalidation finished----')
         fm = pylibfm.FM(num_factors = num_factors,num_iter = 1000,verbose = False,task = 'regression',initial_learning_rate=0.001,learning_rate_schedule='optimal',dataname = data_name,reg_1 = reg_1,reg_2 = reg_2)
         fm.fit(x_train,y_train,x_test,y_test,num_attributes)
@@ -55,7 +53,7 @@ def sparsity_with_performance(data_name,x_train,y_train,x_test,y_test,num_attrib
     fh_sparsity_performance.write('num_factors:'+str(num_factors)+'\n')
     for lambda_1 in lambda_set:
         for lambda_2 in lambda_set:
-            fh_sparsity_performance.write('lambda_1:'+str(lambda_1)+'\n')
+            fh_sparsity_performance.write('\n'+'lambda_1:'+str(lambda_1)+'\n')
             fh_sparsity_performance.write('lambda_2:'+ str(lambda_2)+'\n')
             fm = pylibfm.FM(num_factors = num_factors,num_iter=1000,verbose = False,task="regression",initial_learning_rate=0.001,dataname=data_name,reg_1 = lambda_1, reg_2 = lambda_2)
             fm.fit(x_train,y_train,x_test,y_test,num_attributes)
@@ -68,7 +66,6 @@ def sparsity_with_performance(data_name,x_train,y_train,x_test,y_test,num_attrib
 if __name__=='__main__':
     #train_data_name = 'ml-1m-train.txt'
     #test_data_name = 'ml-1m-test.txt'
-    #precessing
     train_data_name = 'u2.base'
     test_data_name = 'u2.test'
     new_data_dir = './results/'+train_data_name
@@ -93,7 +90,7 @@ if __name__=='__main__':
         num_attributes = 2652
     print('dataset:'+train_data_name+'\n')
     print('num_attributes:'+str(num_attributes))
-    #performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
-    sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
+    performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
+    #sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
 
 

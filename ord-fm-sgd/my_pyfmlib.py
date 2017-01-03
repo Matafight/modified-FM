@@ -11,8 +11,6 @@ class FM:
     def __init__(self,
                  num_factors = 10,
                  num_iter = 1,
-                 k0 = True,
-                 k1 = True,
                  init_stdev = 0.1,
                  validation_size = 0.01,
                  learning_rate_schedule="optimal",
@@ -30,8 +28,6 @@ class FM:
         self.num_iter = num_iter
         self.sum = np.zeros(self.num_factors)
         self.sum_sqr = np.zeros(self.num_factors)
-        self.k0 = k0
-        self.k1 = k1
         self.init_stdev=init_stdev
         self.validation_size = validation_size
         self.task = task
@@ -82,8 +78,6 @@ class FM:
         self._validate_params()
         self.max_target = max(y)
         self.min_target = min(y)
-        k0 = self._bool_to_int(self.k0)
-        k1 = self._bool_to_int(self.k1)
         shuffle_training = self._bool_to_int(self.shuffle_training)
         verbose = self._bool_to_int(self.verbose)
         learning_rate_schedule = self._get_learning_rate_type(self.learning_rate_schedule)
@@ -106,8 +100,6 @@ class FM:
                                    self.num_factors,
                                    self.num_attribute,
                                    self.num_iter,
-                                   k0,
-                                   k1,
                                    self.w0,
                                    self.t,
                                    self.t0,

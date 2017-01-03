@@ -28,8 +28,6 @@ cdef class FM_fast(object):
     num_factors : int
     num_attributes : int
     n_iter = int
-    k0 : int
-    k1 : int
     w0 : double
     t : double
     t0 : double
@@ -54,8 +52,6 @@ cdef class FM_fast(object):
     cdef int num_factors
     cdef int num_attributes
     cdef int n_iter
-    cdef int k0
-    cdef int k1
 
     #why use the different DOUBLE type from w0
     cdef DOUBLE t
@@ -74,7 +70,7 @@ cdef class FM_fast(object):
     cdef int seed
     cdef int verbose
 
-    cdef DOUBLE  reg_0
+    cdef DOUBLE reg_0
     cdef DOUBLE reg_1
     cdef DOUBLE reg_2
 
@@ -91,8 +87,6 @@ cdef class FM_fast(object):
                   int num_factors,
                   int num_attributes,
                   int n_iter,
-                  int k0,
-                  int k1,
                   double w0,
                   double t,
                   double t0,
@@ -119,8 +113,6 @@ cdef class FM_fast(object):
         self.num_factors = num_factors
         self.num_attributes = num_attributes
         self.n_iter = n_iter
-        self.k0 = k0
-        self.k1 = k1
         self.t = 1
         self.t0  = 1
         self.learning_rate = eta0
@@ -143,7 +135,6 @@ cdef class FM_fast(object):
         self.dataname = dataname
         self.grad_w = np.zeros(self.num_attributes)
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
-        #if(verbose==False):
 
         self.x_test = x_test
         self.y_test = y_test
@@ -163,13 +154,10 @@ cdef class FM_fast(object):
         cdef np.ndarray[DOUBLE,ndim = 1,mode='c'] sum_ = np.zeros(self.num_factors)
         cdef np.ndarray[DOUBLE,ndim = 1,mode='c'] sum_sqr = np.zeros(self.num_factors)
 
-        if self.k0 > 0:
-            result +=w0
-        if self.k1 > 0:
-            for i in range(xnnz):
-                #x is stored in CSR format
-                feature = x_ind_ptr[i]
-                result += w[feature]*x_data_ptr[i]
+        result +=w0
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            result += w[feature]*x_data_ptr[i]
 
         for f in range(self.num_factors):
             sum_[f] = 0.0
@@ -181,7 +169,6 @@ cdef class FM_fast(object):
                 sum_sqr[f] += d*d
             result += 0.5*(sum_[f]*sum_[f]-sum_sqr[f])
 
-        #pass sum to sgd_theta
         self.sum_ = sum_
         return result
 
@@ -244,16 +231,14 @@ cdef class FM_fast(object):
 
         self.sumloss += _squared_loss(p,y)
         #update global bias
-        if self.k0 > 0:
-            grad_0 = mult
-            w0 -= learning_rate*(grad_0 + 2*reg_0*w0)
+        grad_0 = mult
+        w0 -= learning_rate*(grad_0 + 2*reg_0*w0)
 
-        if self.k1 > 0:
-            for i in range(xnnz):
-                feature = x_ind_ptr[i]
-                grad_w[feature]= mult*x_data_ptr[i]
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            grad_w[feature]= mult*x_data_ptr[i]
 
-                w[feature] -= learning_rate*(grad_w[feature]+ 2*reg_1*w[feature])
+            w[feature] -= learning_rate*(grad_w[feature]+ 2*reg_1*w[feature])
 
         for f in range(self.num_factors):
             for i in range(xnnz):
@@ -333,7 +318,7 @@ cdef class FM_fast(object):
                     self.early_stop_w = self.w
                     self.early_stop_v = self.v
                     count_early_stop = 0
-                if(count_early_stop == 50):
+                if(count_early_stop == 20):
                     print('-----EARLY-STOPPING---')
                     self.w0 = self.early_stop_w0
                     self.w = self.early_stop_w

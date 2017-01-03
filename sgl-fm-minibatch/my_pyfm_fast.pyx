@@ -73,11 +73,15 @@ cdef class FM_fast(object):
     cdef INTEGER shuffle_training
     cdef INTEGER seed
     cdef INTEGER verbose
+    cdef int L_1
+    cdef int L_21
     
     cdef INTEGER ifall
     cdef DOUBLE reg_0
     cdef DOUBLE reg_1
     cdef DOUBLE reg_2
+    cdef DOUBLE lambda_1
+    cdef DOUBLE lambda_2
 
     cdef DOUBLE grad_w0
     cdef np.ndarray grad_w
@@ -87,6 +91,7 @@ cdef class FM_fast(object):
     cdef DOUBLE U_w0
     cdef DOUBLE T_rda # global T for RDA algorithm
     cdef str dataname
+    cdef str method_name
     cdef DOUBLE sumloss
     cdef INTEGER count # what for?
     cdef CSRDataset x_test
@@ -112,7 +117,10 @@ cdef class FM_fast(object):
                   INTEGER task,
                   INTEGER seed,
                   INTEGER verbose,
+                  int L_1,
+                  int L_21,
                   dataname,
+                  method_name,
                   double reg_1,
                   double reg_2,
                   double gamma,
@@ -144,12 +152,17 @@ cdef class FM_fast(object):
         self.shuffle_training = shuffle_training
         self.seed = seed
         self.verbose = verbose
+        self.L_1 = L_1
+        self.L_21 = L_21
         self.reg_0 = 0.0
         self.reg_1 = reg_1
         self.reg_2 = reg_2
+        self.lambda_1 = reg_1*reg_2
+        self.lambda_2 = (1-reg_1)*reg_2*np.sqrt(num_factors)
         self.sumloss=0.0
         self.count = 0
         self.dataname = dataname
+        self.method_name = method_name
         self.grad_w0 = 0.0
         self.grad_w = np.zeros(self.num_attributes)
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
@@ -223,8 +236,6 @@ cdef class FM_fast(object):
         cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] grad_v = self.grad_v
         cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] v = self.v
         cdef DOUBLE learning_rate = self.learning_rate
-        cdef DOUBLE reg_1 = self.reg_1
-        cdef DOUBLE reg_2 = self.reg_2
         p = self._predict_instance(x_data_ptr, x_ind_ptr, xnnz)
 
         #regression task
@@ -257,8 +268,8 @@ cdef class FM_fast(object):
         cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] grad_v = self.grad_v
         cdef DOUBLE learning_rate = self.learning_rate
         cdef DOUBLE mynum_samples = num_samples
-        cdef DOUBLE reg_1 = self.reg_1
-        cdef DOUBLE reg_2 = self.reg_2
+        cdef DOUBLE reg_1 = self.lambda_1
+        cdef DOUBLE reg_2 = self.lambda_2
         grad_w0 = grad_w0/mynum_samples
         grad_w = grad_w/mynum_samples
         grad_v = grad_v/mynum_samples
@@ -270,21 +281,21 @@ cdef class FM_fast(object):
 
         U = np.concatenate((w.reshape(1,self.num_attributes),v),axis = 0)
         # step 1 
-        absU = abs(U)
-        U[absU <= reg_1] = 0
-        ind = absU > reg_1
-        U[ind] = (absU[ind] - reg_1)/absU[ind] * U[ind]
+        if(self.L_1 > 0):
+            absU = abs(U)
+            U[absU <= reg_1] = 0
+            ind = absU > reg_1
+            U[ind] = (absU[ind] - reg_1)/absU[ind] * U[ind]
 
         #step 2, L2 norm on each column of U
-        normU = np.linalg.norm(U,axis = 0)
-        normU[normU <= reg_2] = 0
-        ind = normU > reg_2
-        normU[ind] = (normU[ind] - reg_2)/normU[ind]
-        alpha = np.tile(normU,(self.num_factors+1,1))
-        U = U*alpha
+        if(self.L_21 > 0):
+            normU = np.linalg.norm(U,axis = 0)
+            normU[normU <= reg_2] = 0
+            ind = normU > reg_2
+            normU[ind] = (normU[ind] - reg_2)/normU[ind]
+            alpha = np.tile(normU,(self.num_factors+1,1))
+            U = U*alpha
         w = U[0,:]
-        #num_zero = np.sum(w==0)
-        #zero_rato = float(num_zero)/self.num_attributes
         v = U[1:,:]
 
         self.grad_w0 = 0.0
@@ -321,8 +332,8 @@ cdef class FM_fast(object):
             num_sample_iter  = 100
         cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
         if(self.verbose > 0):
-            fh = open('./results/'+self.dataname+'/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
-            fhtest = open('./results/'+self.dataname+'/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            fh = open('./results/'+self.dataname+'/'+self.method_name+'/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            fhtest = open('./results/'+self.dataname+'/'+self.method_name+'/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
             #在文件的开头简单介绍一下参数设置
             fhtest.write('reg_1:'+str(self.reg_1)+'\n')
             fhtest.write('reg_2:'+str(self.reg_2)+'\n')
@@ -375,7 +386,7 @@ cdef class FM_fast(object):
                     self.early_stop_w = self.w
                     self.early_stop_v = self.v
                     count_early_stop = 0
-                if(count_early_stop == 50):
+                if(count_early_stop == 20):
                     print('----EARLY-STOPPING-')
                     self.w0 = self.early_stop_w0
                     self.w = self.early_stop_w

@@ -21,12 +21,15 @@ class FM:
                  t0=0.001,
                  task = 'regression',
                  verbose = True,
+                 L_1 = True,
+                 L_21 = True,
                  shuffle_training= True,
                  seed = 28,
                  dataname = "unknown",
                  reg_1 = 0.01,
                  reg_2 = 0.01,
-                 gamma = 0.1):
+                 gamma = 0.1,
+                 method_name = 'sgl'):
         self.num_factors=num_factors
         self.num_iter = num_iter
         self.sum = np.zeros(self.num_factors)
@@ -37,6 +40,9 @@ class FM:
         self.validation_size = validation_size
         self.task = task
         self.verbose = verbose
+        self.L_1 = L_1
+        self.L_21 = L_21
+        self.method_name = method_name
         self.shuffle_training = shuffle_training
         self.seed = seed
 
@@ -88,6 +94,8 @@ class FM:
         k1 = self._bool_to_int(self.k1)
         shuffle_training = self._bool_to_int(self.shuffle_training)
         verbose = self._bool_to_int(self.verbose)
+        L_1 = self._bool_to_int(self.L_1)
+        L_21 = self._bool_to_int(self.L_21)
         learning_rate_schedule = self._get_learning_rate_type(self.learning_rate_schedule)
 
         #self.num_attribute = X.shape[1]
@@ -124,7 +132,10 @@ class FM:
                                    task,
                                    self.seed,
                                    verbose,
+                                   L_1,
+                                   L_21,
                                    self.dataname,
+                                   self.method_name,
                                    self.reg_1,
                                    self.reg_2,
                                    self.gamma,
@@ -133,8 +144,8 @@ class FM:
                                    all_flag)
         return self.fm_fast.fit(X_train_dataset)
 
-    def predict(self,X):
-        sparse_X = _make_dataset(X,np.ones(X.shape[0]))
+    def predict(self,X,y):
+        sparse_X = _make_dataset(X,y)
         return self.fm_fast._predict(sparse_X)
 
 

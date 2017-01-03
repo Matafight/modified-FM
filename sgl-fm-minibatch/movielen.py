@@ -39,44 +39,56 @@ def performance_with_k(dataname,x_train,y_train,x_test,y_test):
     file_varing_k.close()
 
 
-def performance_cross_validation(dataname,x_train,y_train,x_test,y_test,num_attributes):
+def performance_cross_validation(dataname,x_train,y_train,x_test,y_test,num_attributes,L_1,L_21,method):
     num_factors = 10
-    mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors,num_attributes=num_attributes, dataname = train_data_name)
+    mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors,num_attributes=num_attributes, dataname = dataname,L_1 = L_1,L_21 = L_21)
     best_reg = mycv.sele_para()
     #best_reg = [0.0010,0.0010]
-    fm = pylibfm.FM(num_factors = num_factors,num_iter=1000,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=dataname,reg_1 = best_reg[0], reg_2 = best_reg[1],gamma = 5)
+    fm = pylibfm.FM(num_factors = num_factors,num_iter=1000,verbose = True,L_1 = L_1,L_21 = L_21,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=dataname,method_name = method,reg_1 = best_reg[0], reg_2 = best_reg[1],gamma = 5)
     #add a boolean flag to decide if use all samples for each iteration
     fm.fit(x_train,y_train,x_test,y_test,num_attributes,ifall = True)
-    pre_label = fm.predict(x_test)
-
-    diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
-    fh = open('./results/'+dataname+'/final_'+dataname,'a')
-    fh.write("--test--RMSE---"+str(diff)+'\n')
-    print(diff)
+    pre_label = fm.predict(x_test,y_test)
 
 if __name__=='__main__':
-    #train_data_name = 'ml-1m-train.txt'
-    #test_data_name = 'ml-1m-test.txt'
+    #pre setting
+    L_1 = False
+    L_21 = True
     train_data_name = 'u2.base'
     test_data_name = 'u2.test'
+    #train_data_name = 'ml-1m-train.txt'
+    #test_data_name = 'ml-1m-test.txt'
     new_data_dir = './results/'+train_data_name
-    if(os.path.isdir(new_data_dir)):
-        print('dir exists')
-    else:
+    if(not os.path.isdir(new_data_dir)):
         os.mkdir(new_data_dir)
     if(not os.path.isdir(new_data_dir+'/figures')):
         os.mkdir(new_data_dir + '/figures')
+    if(L_1 and L_21):
+        method = 'sgl'
+        if(not os.path.isdir(new_data_dir+'/sgl')):
+            os.mkdir(new_data_dir + '/sgl')
+    elif(L_1):
+        method = 'L1'
+        if(not os.path.isdir(new_data_dir + '/L1')):
+            os.mkdir(new_data_dir+'/L1')
+    elif(L_21):
+        method = 'L21'
+        if(not os.path.isdir(new_data_dir+'/L21')):
+            os.mkdir(new_data_dir+'/L21')
+
     (train_data,train_label,train_users,train_items)= loadData('../data/'+train_data_name)
     (test_data,test_label,test_users,test_items)=loadData('../data/'+test_data_name)
     v = DictVectorizer()
     x_train=v.fit_transform(train_data)
     x_test = v.fit_transform(test_data)
+
     if(train_data_name == 'ml-1m-train.txt'):
         num_attributes = 9940
     else:
         num_attributes = 2652
-    print('dataset:'+train_data_name+'\n')
+
+
+    print('method: '+ method)
+    print('dataset:'+train_data_name)
     print('num_attributes:'+str(num_attributes))
-    performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
-    #performance_with_k(train_data_name,x_train,train_label,x_test,test_label)
-   
+    #performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
+    performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)

@@ -3,6 +3,7 @@ from sklearn import cross_validation
 import random
 from my_pyfm_fast import FM_fast, CSRDataset
 
+LEARNING_RATE_TYPES = {"optimal":0, "invscaling":1, "constant":2}
 TASKS = {"regression":0, "classification":1}
 
 class FM:
@@ -14,7 +15,9 @@ class FM:
                  k1 = True,
                  init_stdev = 0.1,
                  validation_size = 0.01,
+                 learning_rate_schedule="optimal",
                  initial_learning_rate = 0.01,
+                 power_t = 0.5,
                  t0=0.001,
                  task = 'regression',
                  verbose = True,
@@ -38,7 +41,9 @@ class FM:
         self.seed = seed
 
         #learning rate parameter
+        self.learning_rate_schedule = learning_rate_schedule
         self.eta0 = initial_learning_rate
+        self.power_t = power_t
         self.t = 1.0
         self.learning_rate = initial_learning_rate
         self.t0 = t0
@@ -48,10 +53,24 @@ class FM:
         self.reg_2 = reg_2
         self.gamma = gamma
         #local parameters in the lambda update
+        #omit here
         self.dataname = dataname
+    def _validate_params(self):
+        if not isinstance(self.shuffle_training, bool):
+            raise ValueError("shuffle must be either true or false")
+        if self.num_iter<0:
+            raise ValueError("n_iter must be greater than 0")
+        if self.learning_rate_schedule in ("constant","invscaling"):
+            if(self.eta0 <= 0.0 ):
+                raise ValueError("eta0 must be > 0")
 
 
-  
+    def _get_learning_rate_type(self,learning_rate):
+            #map learning rate string to int for cython
+        try:
+            return LEARNING_RATE_TYPES[learning_rate]
+        except KeyError:
+            raise ValueError("learning_rate %s is not supported"%learning_rate)
     def _bool_to_int(self,bool_arg):
         if bool_arg == True:
             return 1
@@ -59,23 +78,22 @@ class FM:
             return 0
 
 
-    def fit(self,X,y,x_test,y_test,num_attributes):
+    def fit(self,X,y,x_test,y_test,num_attributes,ifall):
         if type(y)!= np.ndarray:
             y = np.array(y)
+        self._validate_params()
         self.max_target = max(y)
         self.min_target = min(y)
         k0 = self._bool_to_int(self.k0)
         k1 = self._bool_to_int(self.k1)
         shuffle_training = self._bool_to_int(self.shuffle_training)
         verbose = self._bool_to_int(self.verbose)
-
+        learning_rate_schedule = self._get_learning_rate_type(self.learning_rate_schedule)
 
         #self.num_attribute = X.shape[1]
         self.num_attribute = num_attributes
-
         X_train_dataset = _make_dataset(X,y)
 
-        #x_test_data = _make_dataset(x_test,np.ones(x_test.shape[0]))
         x_test_data = _make_dataset(x_test,y_test)
         #setup params
         self.w0 = 0.0
@@ -83,6 +101,10 @@ class FM:
         np.random.seed(seed=self.seed)
         self.v = np.random.normal(scale = self.init_stdev,size=(self.num_factors,self.num_attribute))
         task = 0
+        if(ifall == True):
+            all_flag = 1
+        else:
+            all_flag = 0
         self.fm_fast = FM_fast(self.w,
                                    self.v,
                                    self.num_factors,
@@ -93,9 +115,11 @@ class FM:
                                    self.w0,
                                    self.t,
                                    self.t0,
+                                   self.power_t,
                                    self.min_target,
                                    self.max_target,
                                    self.eta0,
+                                   learning_rate_schedule,
                                    shuffle_training,
                                    task,
                                    self.seed,
@@ -105,14 +129,13 @@ class FM:
                                    self.reg_2,
                                    self.gamma,
                                    x_test_data,
-                                   y_test)
-        self.fm_fast.fit(X_train_dataset)
+                                   y_test,
+                                   all_flag)
+        return self.fm_fast.fit(X_train_dataset)
 
-    def predict(self,X,y):
-        sparse_X = _make_dataset(X,y)
+    def predict(self,X):
+        sparse_X = _make_dataset(X,np.ones(X.shape[0]))
         return self.fm_fast._predict(sparse_X)
-    def return_sparsity(self):
-        return self.fm_fast.return_sparsity()
 
 
 

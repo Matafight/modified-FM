@@ -5,15 +5,14 @@ import sys
 from libc.math cimport exp,log,pow,sqrt
 import time
 import random
-import matplotlib.pyplot as plt
 cimport numpy as np
 cimport cython
-
+import matplotlib.pyplot as plt
+from libc.stdlib cimport malloc, free
 np.import_array()
 
 ctypedef np.float64_t DOUBLE
 ctypedef np.int32_t INTEGER
-
 # MODEL constants
 
 #control learning_rate
@@ -25,11 +24,11 @@ cdef class FM_fast(object):
     parameters:
     w : np.ndarray[DOUBLE, ndim=1, mode='c']
     v : np.ndarray[DOUBLE, ndim= 2, mode='c']
-    num_factors : int
-    num_attributes : int
-    n_iter = int
-    k0 : int
-    k1 : int
+    num_factors : INTEGER
+    num_attributes : INTEGER
+    n_iter = INTEGER
+    k0 : INTEGER
+    k1 : INTEGER
     w0 : double
     t : double
     t0 : double
@@ -39,11 +38,11 @@ cdef class FM_fast(object):
     min_target : double
     max_target : double
     eta0 : double
-    learning_rate_schedule : int
-    shuffle_training : int
-    task : int
-    seed : int
-    verbose: int
+    learning_rate_schedule : INTEGER
+    shuffle_training : INTEGER
+    task : INTEGER
+    seed : INTEGER
+    verbose: INTEGER
     """
     cdef double w0
     cdef np.ndarray w
@@ -51,11 +50,11 @@ cdef class FM_fast(object):
     cdef double early_stop_w0
     cdef np.ndarray early_stop_w
     cdef np.ndarray early_stop_v
-    cdef int num_factors
-    cdef int num_attributes
-    cdef int n_iter
-    cdef int k0
-    cdef int k1
+    cdef INTEGER num_factors
+    cdef INTEGER num_attributes
+    cdef INTEGER n_iter
+    cdef INTEGER  k0
+    cdef INTEGER k1
 
     #why use the different DOUBLE type from w0
     cdef DOUBLE t
@@ -66,33 +65,41 @@ cdef class FM_fast(object):
     cdef DOUBLE max_target
     cdef np.ndarray sum_
     cdef np.ndarray sum_sqr
-    cdef int task
-    cdef int learning_rate_schedule
+    cdef INTEGER task
+    cdef INTEGER learning_rate_schedule
     cdef double learning_rate
-    cdef double init_learning_rate
-    cdef int shuffle_training
-    cdef int seed
-    cdef int verbose
-
+    cdef double init_learning_rate 
+        
+    cdef INTEGER shuffle_training
+    cdef INTEGER seed
+    cdef INTEGER verbose
+    
+    cdef INTEGER ifall
     cdef DOUBLE  reg_0
     cdef DOUBLE reg_1
     cdef DOUBLE reg_2
 
+    cdef DOUBLE grad_w0
     cdef np.ndarray grad_w
     cdef np.ndarray grad_v
+    cdef np.ndarray U_v
+    cdef np.ndarray U_w
+    cdef DOUBLE U_w0
+    cdef DOUBLE T_rda # global T for RDA algorithm
     cdef str dataname
     cdef DOUBLE sumloss
-    cdef int count # what for?
+    cdef INTEGER count # what for?
     cdef CSRDataset x_test
     cdef np.ndarray y_test
+    cdef DOUBLE gamma
     def __init__(self,
                   np.ndarray[DOUBLE,ndim=1,mode='c'] w,
                   np.ndarray[DOUBLE, ndim=2,mode='c'] v,
-                  int num_factors,
-                  int num_attributes,
-                  int n_iter,
-                  int k0,
-                  int k1,
+                  INTEGER num_factors,
+                  INTEGER num_attributes,
+                  INTEGER n_iter,
+                  INTEGER k0,
+                  INTEGER k1,
                   double w0,
                   double t,
                   double t0,
@@ -100,16 +107,18 @@ cdef class FM_fast(object):
                   double min_target,
                   double max_target,
                   double eta0,
-                  int learning_rate_schedule,
-                  int shuffle_training,
-                  int task,
-                  int seed,
-                  int verbose,
+                  INTEGER learning_rate_schedule,
+                  INTEGER shuffle_training,
+                  INTEGER task,
+                  INTEGER seed,
+                  INTEGER verbose,
                   dataname,
                   double reg_1,
                   double reg_2,
+                  double gamma,
                   CSRDataset x_test,
-                  np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test):
+                  np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test,
+                  INTEGER ifall):
         self.w0 = w0
         self.w = w
         self.v = v
@@ -141,19 +150,24 @@ cdef class FM_fast(object):
         self.sumloss=0.0
         self.count = 0
         self.dataname = dataname
+        self.grad_w0 = 0.0
         self.grad_w = np.zeros(self.num_attributes)
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
-        #if(verbose==False):
-
+        self.U_w = np.zeros(self.num_attributes)
+        self.U_v = np.zeros((self.num_factors,self.num_attributes))
+        self.U_w0 = 1
+        self.T_rda = 1.0
+        self.gamma = gamma
         self.x_test = x_test
         self.y_test = y_test
+        self.ifall = ifall
 
-    cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz):
+    cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,INTEGER xnnz):
         #helper variable
         cdef DOUBLE result = 0.0
-        cdef int feature
-        cdef unsigned int i = 0
-        cdef unsigned int f = 0
+        cdef INTEGER feature
+        cdef INTEGER i = 0
+        cdef INTEGER f = 0
         cdef DOUBLE  d
 
         #map instance variables to local variables
@@ -186,111 +200,130 @@ cdef class FM_fast(object):
         return result
 
     def _predict(self, CSRDataset dataset):
-        cdef unsigned int i =0
+        cdef INTEGER i =0
         cdef Py_ssize_t n_samples = dataset.n_samples
         cdef DOUBLE * x_data_ptr = NULL
         cdef INTEGER * x_ind_ptr = NULL
-        cdef int xnnz
-        cdef DOUBLE sample_weight = 1.0
+        cdef INTEGER xnnz
         cdef DOUBLE y_placeholder
         cdef DOUBLE p = 0.0
 
         cdef np.ndarray[DOUBLE, ndim = 1,mode='c'] return_preds = np.zeros(n_samples)
-
         for i in range(n_samples):
-            dataset.next(&x_data_ptr,&x_ind_ptr,&xnnz,&y_placeholder,&sample_weight)
+            dataset.data_index(&x_data_ptr,&x_ind_ptr,&xnnz,&y_placeholder,i)
             p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
-
             return_preds[i] = p
+        x_data_ptr = NULL
+        x_ind_ptr = NULL
         return return_preds
-    def return_sparsity(self):
-        cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
-        cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] v = self.v
-        cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] U = np.concatenate((np.reshape(w,(1,self.num_attributes)),v),axis = 0)
-        zeros_ind = U==0
-        total = (self.num_factors+1)*self.num_attributes
-        per = np.sum(zeros_ind)/float(total)
-        return per
 
-    cdef _sgd_theta_step(self,DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz,DOUBLE y):
-        cdef DOUBLE mult = 0.0
-        cdef DOUBLE p
-        cdef int feature
-        cdef unsigned int i=0
-        cdef unsigned int f=0
-        cdef DOUBLE d
-        cdef DOUBLE grad_0
-
-        cdef DOUBLE w0 = self.w0
-        cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
-        cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] v = self.v
-        cdef np.ndarray[DOUBLE, ndim = 1,mode='c'] grad_w = self.grad_w
-        cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] grad_v = self.grad_v
+    cdef _update_grad_minibatch(self,DOUBLE * x_data_ptr, INTEGER * x_ind_ptr, INTEGER xnnz, DOUBLE y):
+        cdef DOUBLE grad_w0 = self.grad_w0
+        cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] grad_w = self.grad_w
+        cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] grad_v = self.grad_v
+        cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] v = self.v
         cdef DOUBLE learning_rate = self.learning_rate
-        cdef DOUBLE reg_0 = self.reg_0
         cdef DOUBLE reg_1 = self.reg_1
         cdef DOUBLE reg_2 = self.reg_2
+        p = self._predict_instance(x_data_ptr, x_ind_ptr, xnnz)
 
-        # have already calculate sum_
-        p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
-
-        # regression task
-        p = min(self.max_target,p)
-        p = max(self.min_target,p)
+        #regression task
+        p = min(self.max_target, p)
+        p = max(self.min_target, p)
         mult = 2*(p-y)
-
-        #set learning schedule
-        self.learning_rate = 1.0/(self.t + self.t0)
-
+        
+        #set learning_rate
         self.sumloss += _squared_loss(p,y)
-        #update global bias
-        if self.k0 > 0:
-            grad_0 = mult
-            w0 -= learning_rate*(grad_0 + 2*reg_0*w0)
-
-        if self.k1 > 0:
-            for i in range(xnnz):
-                feature = x_ind_ptr[i]
-                grad_w[feature]= mult*x_data_ptr[i]
-
-                w[feature] -= learning_rate*(grad_w[feature]+ 2*reg_1*w[feature])
-
+        grad_w0 += mult
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            grad_w[feature] += mult*x_data_ptr[i]
+        
         for f in range(self.num_factors):
             for i in range(xnnz):
                 feature = x_ind_ptr[i]
-                grad_v[f,feature] = mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature])
-                v[f,feature] -= learning_rate*(grad_v[f,feature] + 2*reg_2*v[f,feature])
+                grad_v[f,feature] += mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature]) 
+        self.grad_w0 = grad_w0
+        self.grad_w = grad_w
+        self.grad_v = grad_v
+        
+    cdef _average_and_update(self,INTEGER num_samples):
+        #update w0,w,v,learning_rate, set grad_w0,grad_w,grad_v to be zeros
+        cdef DOUBLE w0 = self.w0
+        cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] w = self.w
+        cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] v = self.v
+        cdef DOUBLE grad_w0 = self.grad_w0
+        cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] grad_w = self.grad_w
+        cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] grad_v = self.grad_v
+        cdef DOUBLE learning_rate = self.learning_rate
+        cdef DOUBLE mynum_samples = num_samples
+        cdef DOUBLE reg_1 = self.reg_1
+        cdef DOUBLE reg_2 = self.reg_2
+        grad_w0 = grad_w0/mynum_samples
+        grad_w = grad_w/mynum_samples
+        grad_v = grad_v/mynum_samples
+        learning_rate = 1.0/(self.t + self.t0)
 
-        self.learning_rate = learning_rate
+        w0 = w0 - learning_rate*grad_w0
+        w = w - learning_rate*grad_w
+        v = v - learning_rate*grad_v
+
+        U = np.concatenate((w.reshape(1,self.num_attributes),v),axis = 0)
+        # step 1 
+        '''absU = abs(U)
+        U[absU <= reg_1] = 0
+        ind = absU > reg_1
+        U[ind] = (absU[ind] - reg_1)/absU[ind] * U[ind]'''
+
+        #step 2, L2 norm on each column of U
+        normU = np.linalg.norm(U,axis = 0)
+        normU[normU <= reg_2] = 0
+        ind = normU > reg_2
+        normU[ind] = (normU[ind] - reg_2)/normU[ind]
+        alpha = np.tile(normU,(self.num_factors+1,1))
+        U = U*alpha
+        w = U[0,:]
+        #num_zero = np.sum(w==0)
+        #zero_rato = float(num_zero)/self.num_attributes
+        v = U[1:,:]
+
+        self.grad_w0 = 0.0
+        self.grad_w = np.zeros((self.num_attributes))
+        self.grad_v = np.zeros((self.num_factors,self.num_attributes))
         self.w0 = w0
         self.w = w
         self.v = v
-        self.grad_w = grad_w
-        self.grad_v = grad_v
-        self.t +=1
+        self.t += 1
         self.count +=1
 
+
+        
     def fit(self, CSRDataset dataset):
+
         cdef Py_ssize_t n_samples = dataset.n_samples
         cdef DOUBLE * x_data_ptr = NULL
         cdef INTEGER * x_ind_ptr = NULL
 
         #helper variables
-        cdef int itercount=0
-        cdef int xnnz
+        cdef INTEGER itercount=0
+        cdef INTEGER xnnz
         cdef DOUBLE y = 0.0
-        cdef unsigned int count =0
-        cdef unsigned int epoch = 0
-        cdef unsigned int i =0
+
+        cdef   INTEGER count =0
+        cdef   INTEGER epoch = 0
+        cdef   INTEGER i =0
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE min_early_stop = sys.maxint
-        cdef unsigned int count_early_stop = 0
-
-        num_sample_iter = 100
-        if self.verbose > 0:
-            cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
-            fh = open('./results/'+self.dataname+'/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_.txt','w')
-            fhtest = open('./results/'+self.dataname+'/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_.txt','w')
+        cdef   INTEGER count_early_stop = 0
+        if self.ifall > 0:
+            num_sample_iter = n_samples
+        else:
+            num_sample_iter  = 100
+        cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
+        if(self.verbose > 0):
+            fh = open('./results/'+self.dataname+'/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            fhtest = open('./results/'+self.dataname+'/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            #在文件的开头简单介绍一下参数设置
             fhtest.write('reg_1:'+str(self.reg_1)+'\n')
             fhtest.write('reg_2:'+str(self.reg_2)+'\n')
             fhtest.write('num_factors:'+str(self.num_factors)+'\n')
@@ -299,29 +332,38 @@ cdef class FM_fast(object):
             training_errors = []
             testing_errors = []
         for epoch in range(self.n_iter):
+            if self.verbose >0 :
+                pre_test = self._predict(self.x_test)
+                pre_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
+                testing_errors.append(pre_error)
+
             self.count = 0
             self.sumloss = 0
-
             if self.shuffle_training:
                 dataset.shuffle(self.seed)
 
             selected_list = random.sample(range(n_samples),num_sample_iter)
-
+          
             for i in selected_list:
-                dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
-                self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
+                dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,i)
+                #mini batch
+                self._update_grad_minibatch(x_data_ptr,x_ind_ptr,xnnz,y)
+            #average gradient
+            #set self.w,w0,v to zeros
+            self._average_and_update(num_sample_iter)
+               
             if self.verbose > 0:
                 if(itercount % 10 ==0):
-                    strtemp = "Training MSE--"+str(self.sumloss/self.count)+"\n"
+                    strtemp = "Training MSE--"+str(self.sumloss/(self.count*num_sample_iter))+"\n"
                     print(strtemp)
-                    fh.write(str(self.sumloss/self.count)+'\n')
-                    training_errors.append(self.sumloss/self.count)
+                    fh.write(str(self.sumloss/(self.count*num_sample_iter))+'\n')
+                    training_errors.append(self.sumloss/(self.count*num_sample_iter))
                     iter_error = 0.0
                     pre_test = self._predict(self.x_test)
                     iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
                     print("=======test_error===="+str(iter_error))
-                    fhtest.write(str(iter_error)+'\n')
                     testing_errors.append(iter_error)
+                    fhtest.write(str(iter_error)+'\n')
             else:
                 iter_error = 0.0
                 pre_test = self._predict(self.x_test)
@@ -334,17 +376,18 @@ cdef class FM_fast(object):
                     self.early_stop_v = self.v
                     count_early_stop = 0
                 if(count_early_stop == 50):
-                    print('-----EARLY-STOPPING---')
+                    print('----EARLY-STOPPING-')
                     self.w0 = self.early_stop_w0
                     self.w = self.early_stop_w
                     self.v = self.early_stop_v
                     break
 
             itercount +=1
+        
         if(self.verbose>0):
-            self.draw_line(training_errors,testing_errors,cur_time)
             fh.close()
             fhtest.close()
+            self.draw_line(training_errors,testing_errors,cur_time)
 
     def draw_line(self,training_errors,testing_errors,cur_time):
         lentrain = len(training_errors)
@@ -355,7 +398,6 @@ cdef class FM_fast(object):
         dataname = './results/'+self.dataname+'/figures/'+cur_time+'_reg_1_'+str(self.reg_1)+'_reg_2_'+str(self.reg_2)+'_k_'+str(self.num_factors)
         plt.savefig(dataname+'.png')
         plt.show()
-
 
 
 cdef _squareq(np.ndarray a, INTEGER b):
@@ -383,8 +425,8 @@ cdef class CSRDataset:
     """An sklearn ``SequentialDataset`` backed by a scipy sparse CSR matrix. This is an ugly hack for the moment until I find the best way to link to sklearn. """
 
     cdef Py_ssize_t n_samples
-    cdef int current_index
-    cdef int stride
+    cdef INTEGER current_index
+    cdef INTEGER stride
     cdef DOUBLE *X_data_ptr
     cdef INTEGER *X_indptr_ptr
     cdef INTEGER *X_indices_ptr
@@ -411,12 +453,12 @@ cdef class CSRDataset:
         X_data : ndarray, dtype=np.float64, ndim=1, mode='c'
             The data array of the CSR matrix; a one-dimensional c-continuous
             numpy array of dtype np.float64.
-        X_indptr : ndarray, dtype=np.int32, ndim=1, mode='c'
-            The index pointer array of the CSR matrix; a one-dimensional
-            c-continuous numpy array of dtype np.int32.
-        X_indices : ndarray, dtype=np.int32, ndim=1, mode='c'
+        X_indptr : ndarray, dtype=np.INTEGER32, ndim=1, mode='c'
+            The index poINTEGERer array of the CSR matrix; a one-dimensional
+            c-continuous numpy array of dtype np.INTEGER32.
+        X_indices : ndarray, dtype=np.INTEGER32, ndim=1, mode='c'
             The column indices array of the CSR matrix; a one-dimensional
-            c-continuous numpy array of dtype np.int32.
+            c-continuous numpy array of dtype np.INTEGER32.
         Y : ndarray, dtype=np.float64, ndim=1, mode='c'
             The target values; a one-dimensional c-continuous numpy array of
             dtype np.float64.
@@ -439,30 +481,28 @@ cdef class CSRDataset:
         self.index_data_ptr = <INTEGER *> index.data
 
     cdef void next(self, DOUBLE **x_data_ptr, INTEGER **x_ind_ptr,
-                   int *nnz, DOUBLE *y, DOUBLE *sample_weight):
-        cdef int current_index = self.current_index
+                   INTEGER *nnz, DOUBLE *y, DOUBLE *sample_weight):
+        cdef INTEGER current_index = self.current_index
         if current_index >= (self.n_samples - 1):
             current_index = -1
 
         current_index += 1
-        cdef int sample_idx = self.index_data_ptr[current_index]
-        cdef int offset = self.X_indptr_ptr[sample_idx]
+        
+        cdef INTEGER sample_idx = self.index_data_ptr[current_index]
+        cdef INTEGER offset = self.X_indptr_ptr[sample_idx]
         y[0] = self.Y_data_ptr[sample_idx]
         x_data_ptr[0] = self.X_data_ptr + offset
         x_ind_ptr[0] = self.X_indices_ptr + offset
         nnz[0] = self.X_indptr_ptr[sample_idx + 1] - offset
-        #this is wrong when the num of data increases to 1 million
-        #sample_weight[0] = self.sample_weight_data[sample_idx]
-
+        sample_weight[0] = 0
         self.current_index = current_index
-    cdef void data_index(self,DOUBLE **x_data_ptr,INTEGER ** x_ind_ptr, int * nnz, DOUBLE *y, DOUBLE * sample_weight,INTEGER new_index):
-        cdef int sample_idx = self.index_data_ptr[new_index]
-        cdef int offset = self.X_indptr_ptr[sample_idx]
+
+    cdef void data_index(self,DOUBLE **x_data_ptr,INTEGER ** x_ind_ptr, INTEGER * nnz, DOUBLE *y,INTEGER new_index):
+        cdef INTEGER sample_idx = self.index_data_ptr[new_index]
+        cdef INTEGER offset = self.X_indptr_ptr[sample_idx]
         y[0] = self.Y_data_ptr[sample_idx]
         x_data_ptr[0] = self.X_data_ptr + offset
         x_ind_ptr[0] = self.X_indices_ptr + offset
         nnz[0] = self.X_indptr_ptr[sample_idx + 1] - offset
-
-        #sample_weight[0] = self.sample_weight_data[sample_idx]
     cdef void shuffle(self, seed):
         np.random.RandomState(seed).shuffle(self.index)

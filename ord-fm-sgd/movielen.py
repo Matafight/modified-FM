@@ -61,6 +61,26 @@ def performance_cross_validation(dataname,x_train,y_train,x_test,y_test,num_attr
     fh.write("--test--RMSE---"+str(diff)+'\n')
     print(diff)
 
+def sparsity_with_performance(data_name,x_train,y_train,x_test,y_test,num_attributes):
+    #计算性能随着 alpha 的变化而 变化,alpha 的变化也对应着组稀疏和一范数的权重的变化,需要比较这三种方法随着alpha 的变化而引起的性能的变化，还要保存系数的稀疏度
+    num_factors = 20
+    alpha_set = [0.2,0.4,0.6,0.8]
+    lambda_set = [0.1]
+    fh_sparsity_performance =  open('./results/'+data_name+'/sparsity_performance.txt','a')
+    fh_sparsity_performance.write('---------start-----new------experiments'+'\n')
+    fh_sparsity_performance.write('num_factors:'+str(num_factors)+'\n')
+    for alpha in alpha_set:
+        for mylambda in lambda_set:
+            fh_sparsity_performance.write('alpha:'+str(alpha)+'\n')
+            fh_sparsity_performance.write('lambda:'+ str(mylambda)+'\n')
+            fm = pylibfm.FM(num_factors = num_factors,num_iter=1000,verbose = False,task="regression",initial_learning_rate=0.001,dataname=data_name,reg_1 = alpha, reg_2 = mylambda)
+            fm.fit(x_train,y_train,x_test,y_test,num_attributes)
+            pre_label = fm.predict(x_test,y_test)
+            diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
+            new_sparsity = fm.return_sparsity()
+            fh_sparsity_performance.write('sparsity:'+str(new_sparsity)+'\n')
+            fh_sparsity_performance.write('rmse:'+str(diff)+'\n')
+    fh_sparsity_performance.close()
 if __name__=='__main__':
     #train_data_name = 'ml-1m-train.txt'
     #test_data_name = 'ml-1m-test.txt'
@@ -90,6 +110,7 @@ if __name__=='__main__':
     print('dataset:'+train_data_name+'\n')
     print('num_attributes:'+str(num_attributes))
     #performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
-    performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
+    #performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
+    sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
 
 

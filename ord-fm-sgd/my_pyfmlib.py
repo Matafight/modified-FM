@@ -130,6 +130,8 @@ class FM:
     def predict(self,X,y):
         sparse_X = _make_dataset(X,y)
         return self.fm_fast._predict(sparse_X)
+    def return_sparsity(self):
+        return self.fm_fast.return_sparsity()
 
 
 

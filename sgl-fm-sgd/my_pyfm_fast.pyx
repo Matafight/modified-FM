@@ -129,8 +129,8 @@ cdef class FM_fast(object):
         self.seed = seed
         self.verbose = verbose
         self.reg_0 = 0.0
-        self.reg_1 = reg_1
-        self.reg_2 = reg_2
+        self.reg_1 = reg_1*reg_2
+        self.reg_2 = (1-reg_1)*reg_2*np.sqrt(num_factors)
         self.sumloss=0.0
         self.count = 0
         self.dataname = dataname
@@ -145,14 +145,12 @@ cdef class FM_fast(object):
         self.y_test = y_test
 
     cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz):
-        #helper variable
         cdef DOUBLE result = 0.0
         cdef int feature
         cdef unsigned int i = 0
         cdef unsigned int f = 0
         cdef DOUBLE  d
 
-        #map instance variables to local variables
         cdef DOUBLE  w0 = self.w0
         cdef np.ndarray[DOUBLE, ndim = 1,mode='c'] w = self.w
         cdef np.ndarray[DOUBLE, ndim = 2,mode='c'] v = self.v
@@ -355,6 +353,19 @@ cdef class FM_fast(object):
         self.count +=1
         self.T_rda +=1
 
+    def return_sparsity(self):
+        cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
+        cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] v = self.v
+        cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] U = np.concatenate((np.reshape(w,(1,self.num_attributes)),v),axis = 0)
+        zeros_ind_total = U==0
+        total = (self.num_factors+1)*self.num_attributes
+        per_total = np.sum(zeros_ind_total)/float(total)
+        per_w = np.sum(w==0)/self.num_attributes
+
+        
+        return per_w,per_total
+        
+        
     def init_para(self,CSRDataset dataset):
         cdef DOUBLE * x_data_ptr = NULL
         cdef INTEGER * x_ind_ptr = NULL
@@ -425,14 +436,10 @@ cdef class FM_fast(object):
 
             self.count = 0
             self.sumloss = 0
-            #if self.shuffle_training:
-            #    dataset.shuffle(self.seed)
-
             selected_list = random.sample(range(n_samples),num_sample_iter)
 
             for i in selected_list:
                 dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
-                #self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
                 self._sgd_FOBO_MYR_step(x_data_ptr,x_ind_ptr,xnnz,y)
 
             if self.verbose > 0:
@@ -451,8 +458,6 @@ cdef class FM_fast(object):
                 iter_error = 0.0
                 pre_test = self._predict(self.x_test)
                 iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
-                #if(itercount % 10 == 0):
-                #    print('In crossvalidation - to avoid sleeping----test_error-----:'+str(iter_error))
                 count_early_stop += 1
                 if(iter_error < min_early_stop):
                     min_early_stop = iter_error

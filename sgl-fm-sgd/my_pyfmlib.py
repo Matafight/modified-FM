@@ -16,6 +16,8 @@ class FM:
                  t0=0.001,
                  task = 'regression',
                  verbose = True,
+                 L_1 = True,
+                 L_21 = True,
                  seed = 28,
                  dataname = "unknown",
                  reg_1 = 0.01,
@@ -30,6 +32,8 @@ class FM:
         self.task = task
         self.verbose = verbose
         self.seed = seed
+        self.L_1 = L_1
+        self.L_21 = L_21
 
         #learning rate parameter
         self.eta0 = initial_learning_rate
@@ -60,13 +64,10 @@ class FM:
         self.min_target = min(y)
         verbose = self._bool_to_int(self.verbose)
 
-
-        #self.num_attribute = X.shape[1]
+        L_1 = self._bool_to_int(self.L_1)
+        L_21 = self._bool_to_int(self.L_21)
         self.num_attribute = num_attributes
-
         X_train_dataset = _make_dataset(X,y)
-
-        #x_test_data = _make_dataset(x_test,np.ones(x_test.shape[0]))
         x_test_data = _make_dataset(x_test,y_test)
         #setup params
         self.w0 = 0.0
@@ -88,6 +89,8 @@ class FM:
                                    task,
                                    self.seed,
                                    verbose,
+                                   L_1,
+                                   L_21,
                                    self.dataname,
                                    self.reg_1,
                                    self.reg_2,

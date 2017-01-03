@@ -1,2 +1,0 @@
-Lasso regularized FM
-

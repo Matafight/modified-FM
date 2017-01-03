@@ -41,10 +41,14 @@ cdef class FM_fast(object):
     cdef int shuffle_training
     cdef int seed
     cdef int verbose
+    cdef int L_1
+    cdef int L_21
 
     cdef DOUBLE  reg_0
     cdef DOUBLE reg_1
     cdef DOUBLE reg_2
+    cdef DOUBLE lambda_1
+    cdef DOUBLE lambda_2
     cdef DOUBLE grad_w0
     cdef np.ndarray grad_w
     cdef np.ndarray grad_v
@@ -73,6 +77,8 @@ cdef class FM_fast(object):
                   int task,
                   int seed,
                   int verbose,
+                  int L_1,
+                  int L_21,
                   dataname,
                   double reg_1,
                   double reg_2,
@@ -99,6 +105,8 @@ cdef class FM_fast(object):
         self.task = task
         self.seed = seed
         self.verbose = verbose
+        self.L_1 = L_1
+        self.L_21 = L_21
         self.reg_0 = 0.0
         self.reg_1 = reg_1
         self.reg_2 = reg_2
@@ -132,7 +140,6 @@ cdef class FM_fast(object):
 
         result +=w0
         for i in range(xnnz):
-                #x is stored in CSR format
             feature = x_ind_ptr[i]
             result += w[feature]*x_data_ptr[i]
 
@@ -208,22 +215,22 @@ cdef class FM_fast(object):
                 
         U = np.concatenate((w.reshape(1,self.num_attributes),v),axis = 0)
         # step 1 
-        absU = abs(U)
-        U[absU <= reg_1] = 0
-        ind = absU > reg_1
-        U[ind] = (absU[ind] - reg_1)/absU[ind] * U[ind]
-
+        if(self.L_1 > 0):
+            absU = abs(U)
+            U[absU <= reg_1] = 0
+            ind = absU > reg_1
+            U[ind] = (absU[ind] - reg_1)/absU[ind] * U[ind]
+        
         #step 2, L2 norm on each column of U
-        normU = np.linalg.norm(U,axis = 0)
-        normU[normU <= reg_2] = 0
-        ind = normU > reg_2
-        normU[ind] = (normU[ind] - reg_2)/normU[ind]
-        alpha = np.tile(normU,(self.num_factors+1,1))
-        U = U*alpha
+        if(self.L_21 > 0):
+            normU = np.linalg.norm(U,axis = 0)
+            normU[normU <= reg_2] = 0
+            ind = normU > reg_2
+            normU[ind] = (normU[ind] - reg_2)/normU[ind]
+            alpha = np.tile(normU,(self.num_factors+1,1))
+            U = U*alpha
 
         w = U[0,:]
-        num_zero = np.sum(w==0)
-        zero_rato = float(num_zero)/self.num_attributes
         v = U[1:,:]
 
         self.learning_rate = learning_rate
@@ -331,19 +338,15 @@ cdef class FM_fast(object):
         total = (self.num_factors+1)*self.num_attributes
         per_total = np.sum(zeros_ind_total)/float(total)
         per_w = np.sum(w==0)/self.num_attributes
-
-        
         return per_w,per_total
         
         
-
 
     def fit(self, CSRDataset dataset):
         cdef Py_ssize_t n_samples = dataset.n_samples
         cdef DOUBLE * x_data_ptr = NULL
         cdef INTEGER * x_ind_ptr = NULL
 
-        #helper variables
         cdef int itercount=0
         cdef int xnnz
         cdef DOUBLE y = 0.0
@@ -411,7 +414,6 @@ cdef class FM_fast(object):
                     self.w = self.early_stop_w
                     self.v = self.early_stop_v
                     break
-
             itercount +=1
         if(self.verbose > 0):
             fh.close()

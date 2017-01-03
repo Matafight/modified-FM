@@ -23,7 +23,6 @@ def loadData(filename):
 
 def performance_with_k(data_name,x_train,y_train,x_test,y_test,num_attributes):
     candidate_k = [20,40,60,80,100,120]
-  
     cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
     file_varing_k = open('./results/'+data_name+'/performance_varying_k_'+cur_time+'.txt','w')
     for num_factors in candidate_k:

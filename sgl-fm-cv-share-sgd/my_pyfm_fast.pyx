@@ -451,8 +451,8 @@ cdef class FM_fast(object):
                 iter_error = 0.0
                 pre_test = self._predict(self.x_test)
                 iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
-                if(itercount % 10 == 0):
-                    print('In crossvalidation - to avoid sleeping----test_error-----:'+str(iter_error))
+                #if(itercount % 10 == 0):
+                #    print('In crossvalidation - to avoid sleeping----test_error-----:'+str(iter_error))
                 count_early_stop += 1
                 if(iter_error < min_early_stop):
                     min_early_stop = iter_error
@@ -460,7 +460,7 @@ cdef class FM_fast(object):
                     self.early_stop_w = self.w
                     self.early_stop_v = self.v
                     count_early_stop = 0
-                if(count_early_stop == 50):
+                if(count_early_stop == 20):
                     print('----EARLY-STOPPING-')
                     self.w0 = self.early_stop_w0
                     self.w = self.early_stop_w
@@ -468,8 +468,7 @@ cdef class FM_fast(object):
                     break
 
             itercount +=1
-        
-        if(self.verbose>0):
+        if(self.verbose > 0):
             fh.close()
             fhtest.close()
             self.draw_line(training_errors,testing_errors,cur_time)

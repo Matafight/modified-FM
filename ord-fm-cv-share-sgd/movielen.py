@@ -41,7 +41,7 @@ def performance_with_k(data_name,x_train,y_train,x_test,y_test,num_attributes):
         print('crossvalidation finished----')
         fm = pylibfm.FM(num_factors = num_factors,num_iter = 1000,verbose = False,task = 'regression',initial_learning_rate=0.001,learning_rate_schedule='optimal',dataname = data_name,reg_1 = reg_1,reg_2 = reg_2)
         fm.fit(x_train,y_train,x_test,y_test,num_attributes)
-        pre_label = fm.predict(x_test)
+        pre_label = fm.predict(x_test,y_test)
         diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
         file_varing_k.write(str(diff)+'\n')
     file_varing_k.close()
@@ -54,7 +54,7 @@ def performance_cross_validation(dataname,x_train,y_train,x_test,y_test,num_attr
     fm = pylibfm.FM(num_factors = num_factors,num_iter=1000,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=dataname,reg_1 = best_reg[0], reg_2 = best_reg[1])
 
     fm.fit(x_train,y_train,x_test,y_test,num_attributes)
-    pre_label = fm.predict(x_test)
+    pre_label = fm.predict(x_test,y_test)
 
     diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
     fh = open('./results/'+dataname+'/final_'+dataname,'a')

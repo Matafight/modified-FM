@@ -127,8 +127,8 @@ class FM:
                                    y_test)
         return self.fm_fast.fit(X_train_dataset)
 
-    def predict(self,X):
-        sparse_X = _make_dataset(X,np.ones(X.shape[0]))
+    def predict(self,X,y):
+        sparse_X = _make_dataset(X,y)
         return self.fm_fast._predict(sparse_X)
 
 

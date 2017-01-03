@@ -1,2 +1,2 @@
-Lasso regularized FM
+Group Lasso regularized FM
 

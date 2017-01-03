@@ -1,2 +1,2 @@
-Sparse Group Lasso regularized FM
+Lasso regularized FM-minibatch version
 

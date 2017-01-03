@@ -100,8 +100,10 @@ cdef class FM_fast(object):
         self.seed = seed
         self.verbose = verbose
         self.reg_0 = 0.0
-        self.reg_1 = reg_1*reg_2
-        self.reg_2 = (1-reg_1)*reg_2*np.sqrt(num_factors)
+        self.reg_1 = reg_1
+        self.reg_2 = reg_2
+        self.lambda_1 = reg_1*reg_2
+        self.lambda_2 = (1-reg_1)*reg_2*np.sqrt(num_factors)
         self.sumloss=0.0
         self.count = 0
         self.dataname = dataname
@@ -175,8 +177,8 @@ cdef class FM_fast(object):
         cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] grad_w = self.grad_w
         cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] grad_v = self.grad_v
         cdef DOUBLE learning_rate = self.learning_rate
-        cdef DOUBLE reg_1 = self.reg_1
-        cdef DOUBLE reg_2 = self.reg_2
+        cdef DOUBLE reg_1 = self.lambda_1
+        cdef DOUBLE reg_2 = self.lambda_2
 
         p = self._predict_instance(x_data_ptr, x_ind_ptr, xnnz)
         
@@ -257,8 +259,8 @@ cdef class FM_fast(object):
         cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] C_comb = np.zeros((self.num_factors+1,self.num_attributes))
         cdef DOUBLE learning_rate = self.learning_rate
         cdef DOUBLE reg_0 = self.reg_0
-        cdef DOUBLE reg_1 = self.reg_1
-        cdef DOUBLE reg_2 = self.reg_2
+        cdef DOUBLE reg_1 = self.lambda_1
+        cdef DOUBLE reg_2 = self.lambda_2
         cdef DOUBLE t_rda = float(self.T_rda)
         # have already calculate sum_
         p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
@@ -334,36 +336,6 @@ cdef class FM_fast(object):
         return per_w,per_total
         
         
-    def init_para(self,CSRDataset dataset):
-        cdef DOUBLE * x_data_ptr = NULL
-        cdef INTEGER * x_ind_ptr = NULL
-        cdef DOUBLE y = 0.0
-        cdef int xnnz
-        cdef Py_ssize_t n_samples = dataset.n_samples
-        cdef np.ndarray [DOUBLE, ndim = 1, mode = 'c'] w = self.w
-        cdef np.ndarray [DOUBLE, ndim = 2, mode = 'c'] v = self.v
-        cdef DOUBLE learning_rate = 0.0000001
-        num_attributes = self.num_attributes
-        num_factors = self.num_factors
-        cdef DOUBLE sample_weight = 1.0
-        cdef DOUBLE reg_1 = 0.1
-        num_sample_iter = 2
-        selected_list = random.sample(range(n_samples),num_sample_iter)
-        for i in selected_list:
-            dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,&sample_weight,i)
-            
-            p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
-            mult = (p-y)
-            for k in range(xnnz):
-                feature = x_ind_ptr[k]
-                w[feature] -= learning_rate*(mult*x_data_ptr[k]+reg_1*w[feature])
-        for i in range(num_attributes):
-            v[:,i] = w[i]/float(num_attributes)
-
-        
-        self.w = w
-        self.v = v
-            
 
 
     def fit(self, CSRDataset dataset):

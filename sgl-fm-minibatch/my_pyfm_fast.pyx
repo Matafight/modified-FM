@@ -75,7 +75,7 @@ cdef class FM_fast(object):
     cdef INTEGER verbose
     
     cdef INTEGER ifall
-    cdef DOUBLE  reg_0
+    cdef DOUBLE reg_0
     cdef DOUBLE reg_1
     cdef DOUBLE reg_2
 

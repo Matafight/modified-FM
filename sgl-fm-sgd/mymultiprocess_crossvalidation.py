@@ -49,5 +49,4 @@ class cross_val_regularization:
                 pre_label = fm.predict(x_test,y_test)
                 diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
                 self.reg_ret[reg_1_cro,reg_2_cro] = self.reg_ret[reg_1_cro,reg_2_cro] + diff
-                print(self.reg_ret)
         print('----complete---'+str(seq)+'---subthread') 

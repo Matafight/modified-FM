@@ -22,9 +22,10 @@ def loadData(filename):
 
 
 def performance_with_k(data_name,x_train,y_train,x_test,y_test,num_attributes):
-    candidate_k = [20]
+    candidate_k = [20,40,60]
     cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
-    file_varing_k = open('./results/'+data_name+'/performance_varying_k_'+cur_time+'.txt','w')
+    file_varing_k = open('./results/'+data_name+'/performance_varying_k.txt','a')
+    file_varing_k.write(cur_time+'\n')
     for num_factors in candidate_k:
         print('k:'+str(num_factors))
         print('start crossvalidation--')
@@ -63,6 +64,17 @@ def sparsity_with_performance(data_name,x_train,y_train,x_test,y_test,num_attrib
             fh_sparsity_performance.write('sparsity:'+str(new_sparsity)+'\n')
             fh_sparsity_performance.write('rmse:'+str(diff)+'\n')
     fh_sparsity_performance.close()
+
+
+def performance_cross_validation(data_name,x_train,y_train,x_test,y_test,num_attributes):
+    num_factors = 10
+    #mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors,num_attributes = num_attributes, dataname = data_name)
+    #best_reg = mycv.sele_para()
+    best_reg = [0.001,0.001]
+    fm = pylibfm.FM(num_factors = num_factors,num_iter=100,verbose = True,task="regression",initial_learning_rate=0.001,dataname=data_name,reg_1 = best_reg[0], reg_2 = best_reg[1])
+    fm.fit(x_train,y_train,x_test,y_test,num_attributes)
+
+
 if __name__=='__main__':
     #train_data_name = 'ml-1m-train.txt'
     #test_data_name = 'ml-1m-test.txt'

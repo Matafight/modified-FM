@@ -23,10 +23,11 @@ def loadData(filename):
 
 def performance_cross_validation(data_name,x_train,y_train,x_test,y_test,num_attributes):
     num_factors = 10
-    mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors,num_attributes = num_attributes, dataname = data_name)
-    best_reg = mycv.sele_para()
-    fm = pylibfm.FM(num_factors = num_factors,num_iter=100,verbose = True,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=data_name,reg_1 = best_reg[0], reg_2 = best_reg[1])
-    fm.fit(x_train,y_train,x_test,y_test,num_attributes,ifall = True)
+    #mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors,num_attributes = num_attributes, dataname = data_name)
+    #best_reg = mycv.sele_para()
+    best_reg = [0.001,0.001]
+    fm = pylibfm.FM(num_factors = num_factors,num_iter=100,verbose = True,task="regression",initial_learning_rate=0.001,dataname=data_name,reg_1 = best_reg[0], reg_2 = best_reg[1])
+    fm.fit(x_train,y_train,x_test,y_test,num_attributes)
 
 
 if __name__=='__main__':

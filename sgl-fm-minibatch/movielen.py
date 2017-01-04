@@ -19,39 +19,65 @@ def loadData(filename):
             items.add(movieid)
     return (data,np.array(y),users,items)
 
-def performance_with_k(dataname,x_train,y_train,x_test,y_test):
-    candidate_k = [20,40,60,80,100,120]
-    reg_1 = 0.00001
-    reg_2 = 0.00001
+def performance_with_k(data_name,x_train,y_train,x_test,y_test,num_attributes,L_1,L_21,method):
+    candidate_k = [20,40,60]
     cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
-    file_varing_k = open('./results/'+dataname+'/performance_varying_k_'+cur_time+'.txt','w')
-    file_varing_k.write('reg_1:'+str(reg_1)+'\n')
-    file_varing_k.write('reg_2:'+str(reg_2)+'\n')
+    file_varing_k = open('./results/'+data_name+'/'+method+'/performance_varying_k.txt','a')
+    file_varing_k.write(cur_time+'\n')
     for num_factors in candidate_k:
-        print('k:'+str(num_factors))
-        file_varing_k.write('k:'+str(num_factors))
-        #gamma is useless  when using FOBO 
-        fm = pylibfm.FM(num_factors = num_factors,num_iter = 1000,verbose = False,task = 'regression',initial_learning_rate=0.001,learning_rate_schedule='optimal',dataname = dataname,reg_1 = reg_1,reg_2 = reg_2,gamma = 5)
-        fm.fit(x_train,y_train,x_test,y_test,ifall = False)
-        pre_label = fm.predict(x_test)
+        print('k:'+str(num_factors)+'\n') 
+        print('start crossvalidation---')
+        mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors, dataname = data_name,num_attributes = num_attributes,L_1 = L_1,L_21 = L_21)
+        best_reg = mycv.sele_para()
+        reg_1 = best_reg[0]
+        reg_2 = best_reg[1]
+        file_varing_k.write('reg_1:'+str(reg_1)+'\n')
+        file_varing_k.write('reg_2:'+str(reg_2)+'\n')
+        file_varing_k.write('k:'+str(num_factors)+'\n')
+        print('crossvalidation finished---')
+        fm = pylibfm.FM(num_factors = num_factors,num_iter = 1000,verbose = False,L_1 = L_1,L_21 = L_21,task = 'regression',initial_learning_rate=0.001,dataname = data_name,reg_1 = reg_1,reg_2 = reg_2)
+        fm.fit(x_train,y_train,x_test,y_test,num_attributes)
+        pre_label = fm.predict(x_test,y_test)
         diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
         file_varing_k.write(str(diff)+'\n')
     file_varing_k.close()
 
 
+def sparsity_with_performance(data_name,x_train,y_train,x_test,y_test,num_attributes,L_1,L_21,method):
+    #计算性能随着 alpha 的变化而 变化,alpha 的变化也对应着组稀疏和一范数的权重的变化,需要比较这三种方法随着alpha 的变化而引起的性能的变化，还要保存系数的稀疏度
+    num_factors = 20
+    alpha_set = [0.2,0.4]
+    lambda_set = [0.00001]
+    fh_sparsity_performance =  open('./results/'+data_name+'/'+method+'/sparsity_performance.txt','a')
+    fh_sparsity_performance.write('---------start-----new------experiments'+'\n')
+    fh_sparsity_performance.write('num_factors:'+str(num_factors)+'\n')
+    for alpha in alpha_set:
+        for mylambda in lambda_set:
+            fh_sparsity_performance.write('\n'+'alpha:'+str(alpha)+'\n')
+            fh_sparsity_performance.write('lambda:'+ str(mylambda)+'\n')
+            fm = pylibfm.FM(num_factors = num_factors,num_iter=1000,verbose = False,L_1 = L_1,L_21 = L_21,task="regression",initial_learning_rate=0.001,dataname=data_name,reg_1 = alpha, reg_2 = mylambda)
+            fm.fit(x_train,y_train,x_test,y_test,num_attributes)
+            pre_label = fm.predict(x_test,y_test)
+            diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
+            w_sparsity,total_sparsity = fm.return_sparsity()
+            fh_sparsity_performance.write('w_sparsity:'+str(w_sparsity)+'\n')
+            fh_sparsity_performance.write('totoal_sparsity:'+str(total_sparsity)+'\n')
+            fh_sparsity_performance.write('rmse:'+str(diff)+'\n')
+    fh_sparsity_performance.close()
+
+
+
 def performance_cross_validation(dataname,x_train,y_train,x_test,y_test,num_attributes,L_1,L_21,method):
     num_factors = 10
-    mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors,num_attributes=num_attributes, dataname = dataname,L_1 = L_1,L_21 = L_21)
-    best_reg = mycv.sele_para()
-    #best_reg = [0.0010,0.0010]
-    fm = pylibfm.FM(num_factors = num_factors,num_iter=1000,verbose = True,L_1 = L_1,L_21 = L_21,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=dataname,method_name = method,reg_1 = best_reg[0], reg_2 = best_reg[1],gamma = 5)
-    #add a boolean flag to decide if use all samples for each iteration
-    fm.fit(x_train,y_train,x_test,y_test,num_attributes,ifall = True)
+    #mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors,num_attributes=num_attributes, dataname = dataname,L_1 = L_1,L_21 = L_21)
+    #best_reg = mycv.sele_para()
+    best_reg = [0.2,0.00010]
+    fm = pylibfm.FM(num_factors = num_factors,num_iter=100,verbose = True,L_1 = L_1,L_21 = L_21,task="regression",initial_learning_rate=0.001,learning_rate_schedule="optimal",dataname=dataname,method_name = method,reg_1 = best_reg[0], reg_2 = best_reg[1])
+    fm.fit(x_train,y_train,x_test,y_test,num_attributes)
     pre_label = fm.predict(x_test,y_test)
 
 if __name__=='__main__':
-    #pre setting
-    L_1 = False
+    L_1 = True
     L_21 = True
     train_data_name = 'u2.base'
     test_data_name = 'u2.test'
@@ -92,3 +118,4 @@ if __name__=='__main__':
     print('num_attributes:'+str(num_attributes))
     #performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
     performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
+    #sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)

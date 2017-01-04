@@ -11,8 +11,6 @@ class FM:
     def __init__(self,
                  num_factors = 10,
                  num_iter = 1,
-                 k0 = True,
-                 k1 = True,
                  init_stdev = 0.1,
                  validation_size = 0.01,
                  learning_rate_schedule="optimal",
@@ -28,14 +26,11 @@ class FM:
                  dataname = "unknown",
                  reg_1 = 0.01,
                  reg_2 = 0.01,
-                 gamma = 0.1,
                  method_name = 'sgl'):
         self.num_factors=num_factors
         self.num_iter = num_iter
         self.sum = np.zeros(self.num_factors)
         self.sum_sqr = np.zeros(self.num_factors)
-        self.k0 = k0
-        self.k1 = k1
         self.init_stdev=init_stdev
         self.validation_size = validation_size
         self.task = task
@@ -57,7 +52,6 @@ class FM:
         self.reg_0 = 0.01
         self.reg_1 = reg_1
         self.reg_2 = reg_2
-        self.gamma = gamma
         #local parameters in the lambda update
         #omit here
         self.dataname = dataname
@@ -84,24 +78,20 @@ class FM:
             return 0
 
 
-    def fit(self,X,y,x_test,y_test,num_attributes,ifall):
+    def fit(self,X,y,x_test,y_test,num_attributes):
         if type(y)!= np.ndarray:
             y = np.array(y)
         self._validate_params()
         self.max_target = max(y)
         self.min_target = min(y)
-        k0 = self._bool_to_int(self.k0)
-        k1 = self._bool_to_int(self.k1)
         shuffle_training = self._bool_to_int(self.shuffle_training)
         verbose = self._bool_to_int(self.verbose)
         L_1 = self._bool_to_int(self.L_1)
         L_21 = self._bool_to_int(self.L_21)
         learning_rate_schedule = self._get_learning_rate_type(self.learning_rate_schedule)
 
-        #self.num_attribute = X.shape[1]
         self.num_attribute = num_attributes
         X_train_dataset = _make_dataset(X,y)
-
         x_test_data = _make_dataset(x_test,y_test)
         #setup params
         self.w0 = 0.0
@@ -109,17 +99,11 @@ class FM:
         np.random.seed(seed=self.seed)
         self.v = np.random.normal(scale = self.init_stdev,size=(self.num_factors,self.num_attribute))
         task = 0
-        if(ifall == True):
-            all_flag = 1
-        else:
-            all_flag = 0
         self.fm_fast = FM_fast(self.w,
                                    self.v,
                                    self.num_factors,
                                    self.num_attribute,
                                    self.num_iter,
-                                   k0,
-                                   k1,
                                    self.w0,
                                    self.t,
                                    self.t0,
@@ -138,16 +122,15 @@ class FM:
                                    self.method_name,
                                    self.reg_1,
                                    self.reg_2,
-                                   self.gamma,
                                    x_test_data,
-                                   y_test,
-                                   all_flag)
+                                   y_test)
         return self.fm_fast.fit(X_train_dataset)
 
     def predict(self,X,y):
         sparse_X = _make_dataset(X,y)
         return self.fm_fast._predict(sparse_X)
-
+    def return_sparsity(self):
+        return self.fm_fast.return_sparsity()
 
 
 

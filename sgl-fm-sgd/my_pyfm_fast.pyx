@@ -27,7 +27,6 @@ cdef class FM_fast(object):
     cdef int num_attributes
     cdef int n_iter
 
-    #why use the different DOUBLE type from w0
     cdef DOUBLE t
     cdef DOUBLE t0
     cdef DOUBLE min_target
@@ -52,16 +51,12 @@ cdef class FM_fast(object):
     cdef DOUBLE grad_w0
     cdef np.ndarray grad_w
     cdef np.ndarray grad_v
-    cdef np.ndarray U_v
-    cdef np.ndarray U_w
-    cdef DOUBLE U_w0
-    cdef DOUBLE T_rda # global T for RDA algorithm
     cdef str dataname
+    cdef str method_name
     cdef DOUBLE sumloss
     cdef int count 
     cdef CSRDataset x_test
     cdef np.ndarray y_test
-    cdef DOUBLE gamma
     def __init__(self,
                   np.ndarray[DOUBLE,ndim=1,mode='c'] w,
                   np.ndarray[DOUBLE, ndim=2,mode='c'] v,
@@ -80,9 +75,9 @@ cdef class FM_fast(object):
                   int L_1,
                   int L_21,
                   dataname,
+                  method_name,
                   double reg_1,
                   double reg_2,
-                  double gamma,
                   CSRDataset x_test,
                   np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test):
         self.w0 = w0
@@ -115,13 +110,9 @@ cdef class FM_fast(object):
         self.sumloss=0.0
         self.count = 0
         self.dataname = dataname
+        self.method_name = method_name
         self.grad_w = np.zeros(self.num_attributes)
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
-        self.U_w = np.zeros(self.num_attributes)
-        self.U_v = np.zeros((self.num_factors,self.num_attributes))
-        self.U_w0 = 1
-        self.T_rda = 1.0
-        self.gamma = gamma
         self.x_test = x_test
         self.y_test = y_test
 
@@ -153,7 +144,6 @@ cdef class FM_fast(object):
                 sum_sqr[f] += d*d
             result += 0.5*(sum_[f]*sum_[f]-sum_sqr[f])
 
-        #pass sum to sgd_theta
         self.sum_ = sum_
         return result
 
@@ -244,92 +234,6 @@ cdef class FM_fast(object):
 
 
         
-        
-    cdef _sgd_theta_step(self,DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz,DOUBLE y):
-        cdef DOUBLE mult = 0.0
-        cdef DOUBLE p
-        cdef int feature
-        cdef unsigned int i=0
-        cdef unsigned int f=0
-        cdef DOUBLE d
-        cdef DOUBLE grad_0
-
-        cdef DOUBLE w0 = self.w0
-        cdef DOUBLE U_w0 = self.U_w0
-        cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
-        cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] v = self.v
-        cdef np.ndarray[DOUBLE, ndim = 1,mode='c'] grad_w = self.grad_w
-        cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] grad_v = self.grad_v
-        cdef np.ndarray[DOUBLE,ndim = 1,mode='c'] U_w = self.U_w
-        cdef np.ndarray[DOUBLE,ndim=2,mode='c'] U_v = self.U_v
-        cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] U_comb = np.zeros((self.num_factors+1,self.num_attributes))
-        cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] C_comb = np.zeros((self.num_factors+1,self.num_attributes))
-        cdef DOUBLE learning_rate = self.learning_rate
-        cdef DOUBLE reg_0 = self.reg_0
-        cdef DOUBLE reg_1 = self.lambda_1
-        cdef DOUBLE reg_2 = self.lambda_2
-        cdef DOUBLE t_rda = float(self.T_rda)
-        # have already calculate sum_
-        p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
-
-        # regression task
-        p = min(self.max_target,p)
-        p = max(self.min_target,p)
-        mult = 2*(p-y)
-
-        #set learning schedule
-        self.learning_rate = 1.0/(self.t + self.t0)
-
-        self.sumloss += _squared_loss(p,y)
-        gamma = self.gamma
-        #update global bias
-        U_w0 = ((t_rda-1)/t_rda)*U_w0 + (1/t_rda)*mult
-        w0 = -1*np.sqrt(t_rda)/gamma*U_w0
-        for i in range(xnnz):
-            feature = x_ind_ptr[i]
-            grad_w[feature]= mult*x_data_ptr[i]
-            U_w[feature] = ((t_rda-1.0)/t_rda) *U_w[feature] + (1.0/t_rda)*grad_w[feature]
-
-        for f in range(self.num_factors):
-            for i in range(xnnz):
-                feature = x_ind_ptr[i]
-                grad_v[f,feature] = mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature])
-                U_v[f,feature] = ((t_rda-1.0)/t_rda)*U_v[f,feature] + (1.0/t_rda)*grad_v[f,feature]
-
-
-        # 下面计算下一次迭代的值
-        lambda_1 = self.reg_1
-        lambda_2 = self.reg_2
-
-
-        for i in range(xnnz):
-            feature = x_ind_ptr[i]
-            U_comb[:,feature] = np.concatenate(([U_w[feature]],U_v[:,feature]))
-            for f in range(self.num_factors+1):
-                if (U_comb[f,feature] > 0):
-                    sign = 1
-                elif(U_comb[f,feature] <0):
-                    sign = -1
-                else:
-                    sign = 0
-                C_comb[f,feature] = max(0,np.abs(U_comb[f,feature])-lambda_2)*sign
-            w[feature] = -1*(np.sqrt(t_rda)/gamma)*max(0,1-(lambda_1/np.linalg.norm(C_comb[:,feature])))*C_comb[0,feature]
-            v[:,feature] = -1*(np.sqrt(t_rda)/gamma)*max(0,1-(lambda_1/np.linalg.norm(C_comb[:,feature])))*C_comb[1:,feature]
-
-        #pass updated vars to other functions
-        self.learning_rate = learning_rate
-        self.w0 = w0
-        self.w = w
-        self.v = v
-        self.U_w = U_w
-        self.U_v = U_v
-        self.U_w0 = U_w0
-        self.grad_w = grad_w
-        self.grad_v = grad_v
-        self.t +=1
-        self.count +=1
-        self.T_rda +=1
-
     def return_sparsity(self):
         cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
         cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] v = self.v
@@ -358,11 +262,11 @@ cdef class FM_fast(object):
         cdef DOUBLE min_early_stop = sys.maxint
         cdef unsigned int count_early_stop = 0
 
-        num_sample_iter = 100
         cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
         if(self.verbose > 0):
-            fh = open('./results/'+self.dataname+'/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
-            fhtest = open('./results/'+self.dataname+'/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            num_sample_iter = n_samples
+            fh = open('./results/'+self.dataname+'/'+self.method_name+'/Convergence_train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            fhtest = open('./results/'+self.dataname+'/'+self.method_name+'/Convergence_test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
             #在文件的开头简单介绍一下参数设置
             fhtest.write('reg_1:'+str(self.reg_1)+'\n')
             fhtest.write('reg_2:'+str(self.reg_2)+'\n')
@@ -371,6 +275,8 @@ cdef class FM_fast(object):
             fhtest.write('num_sample_iter:'+str(num_sample_iter)+'\n')
             training_errors = []
             testing_errors = []
+        else:
+            num_sample_iter = 100
         for epoch in range(self.n_iter):
             if self.verbose >0 :
                 pre_test = self._predict(self.x_test)

@@ -30,10 +30,8 @@ class cross_val_regularization:
             count += 1
         print("---------ALL subthread completed")
 
-        #find the index of the minimum validationerror
         ind = np.argmin(self.reg_ret)
         best_reg_ind = np.unravel_index(ind,[self.length_1,self.length_2])
-        # reg_1: best_reg[0],ret_2 : best_reg[1]
         print(self.reg_ret)
         print(best_reg_ind)
         best_reg = [self.reg_set_1[best_reg_ind[0]],self.reg_set_2[best_reg_ind[1]]]
@@ -46,9 +44,8 @@ class cross_val_regularization:
         for reg_1_cro in range(self.length_1):
             for reg_2_cro in range(self.length_2):
                 fm = pylibfm.FM(num_factors = self.numfactors,num_iter=500,verbose = False,L_1 = self.L_1,L_21=self.L_21,task="regression",initial_learning_rate=0.001,dataname=self.dataname,reg_1 = self.reg_set_1[reg_1_cro], reg_2 = self.reg_set_2[reg_2_cro])
-                fm.fit(x_train,y_train,x_test,y_test,self.num_attributes,ifall = False)
+                fm.fit(x_train,y_train,x_test,y_test,self.num_attributes)
                 pre_label = fm.predict(x_test,y_test)
                 diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
                 self.reg_ret[reg_1_cro,reg_2_cro] = self.reg_ret[reg_1_cro,reg_2_cro] + diff
-                print(self.reg_ret)
         print('----complete---'+str(seq)+'---subthread') 

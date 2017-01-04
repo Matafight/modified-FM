@@ -21,28 +21,6 @@ DEF OPTIMAL = 0
 DEF INVERSE_SCALING = 1
 
 cdef class FM_fast(object):
-    """
-    parameters:
-    w : np.ndarray[DOUBLE, ndim=1, mode='c']
-    v : np.ndarray[DOUBLE, ndim= 2, mode='c']
-    num_factors : int
-    num_attributes : int
-    n_iter = int
-    w0 : double
-    t : double
-    t0 : double
-    #what's this used for?
-    l : double
-    power_t :double
-    min_target : double
-    max_target : double
-    eta0 : double
-    learning_rate_schedule : int
-    shuffle_training : int
-    task : int
-    seed : int
-    verbose: int
-    """
     cdef double w0
     cdef np.ndarray w
     cdef np.ndarray v
@@ -78,7 +56,7 @@ cdef class FM_fast(object):
     cdef np.ndarray grad_v
     cdef str dataname
     cdef DOUBLE sumloss
-    cdef int count # what for?
+    cdef int count 
     cdef CSRDataset x_test
     cdef np.ndarray y_test
     def __init__(self,
@@ -260,7 +238,6 @@ cdef class FM_fast(object):
         cdef DOUBLE * x_data_ptr = NULL
         cdef INTEGER * x_ind_ptr = NULL
 
-        #helper variables
         cdef int itercount=0
         cdef int xnnz
         cdef DOUBLE y = 0.0
@@ -271,11 +248,11 @@ cdef class FM_fast(object):
         cdef DOUBLE min_early_stop = sys.maxint
         cdef unsigned int count_early_stop = 0
 
-        num_sample_iter = 100
         if self.verbose > 0:
+            num_sample_iter = n_samples
             cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
-            fh = open('./results/'+self.dataname+'/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_.txt','w')
-            fhtest = open('./results/'+self.dataname+'/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_.txt','w')
+            fh = open('./results/'+self.dataname+'/Convergence_train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_.txt','w')
+            fhtest = open('./results/'+self.dataname+'/Convergence_test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_.txt','w')
             fhtest.write('reg_1:'+str(self.reg_1)+'\n')
             fhtest.write('reg_2:'+str(self.reg_2)+'\n')
             fhtest.write('num_factors:'+str(self.num_factors)+'\n')
@@ -283,6 +260,8 @@ cdef class FM_fast(object):
             fhtest.write('num_sample_iter:'+str(num_sample_iter)+'\n')
             training_errors = []
             testing_errors = []
+        else:
+            n_sample_iter = 100
         for epoch in range(self.n_iter):
             self.count = 0
             self.sumloss = 0

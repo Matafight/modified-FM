@@ -13,37 +13,9 @@ np.import_array()
 
 ctypedef np.float64_t DOUBLE
 ctypedef np.int32_t INTEGER
-# MODEL constants
 
-#control learning_rate
-DEF OPTIMAL = 0
-DEF INVERSE_SCALING = 1
 
 cdef class FM_fast(object):
-    """
-    parameters:
-    w : np.ndarray[DOUBLE, ndim=1, mode='c']
-    v : np.ndarray[DOUBLE, ndim= 2, mode='c']
-    num_factors : INTEGER
-    num_attributes : INTEGER
-    n_iter = INTEGER
-    k0 : INTEGER
-    k1 : INTEGER
-    w0 : double
-    t : double
-    t0 : double
-    #what's this used for?
-    l : double
-    power_t :double
-    min_target : double
-    max_target : double
-    eta0 : double
-    learning_rate_schedule : INTEGER
-    shuffle_training : INTEGER
-    task : INTEGER
-    seed : INTEGER
-    verbose: INTEGER
-    """
     cdef double w0
     cdef np.ndarray w
     cdef np.ndarray v
@@ -53,8 +25,6 @@ cdef class FM_fast(object):
     cdef INTEGER num_factors
     cdef INTEGER num_attributes
     cdef INTEGER n_iter
-    cdef INTEGER  k0
-    cdef INTEGER k1
 
     #why use the different DOUBLE type from w0
     cdef DOUBLE t
@@ -76,7 +46,6 @@ cdef class FM_fast(object):
     cdef int L_1
     cdef int L_21
     
-    cdef INTEGER ifall
     cdef DOUBLE reg_0
     cdef DOUBLE reg_1
     cdef DOUBLE reg_2
@@ -86,25 +55,18 @@ cdef class FM_fast(object):
     cdef DOUBLE grad_w0
     cdef np.ndarray grad_w
     cdef np.ndarray grad_v
-    cdef np.ndarray U_v
-    cdef np.ndarray U_w
-    cdef DOUBLE U_w0
-    cdef DOUBLE T_rda # global T for RDA algorithm
     cdef str dataname
     cdef str method_name
     cdef DOUBLE sumloss
     cdef INTEGER count # what for?
     cdef CSRDataset x_test
     cdef np.ndarray y_test
-    cdef DOUBLE gamma
     def __init__(self,
                   np.ndarray[DOUBLE,ndim=1,mode='c'] w,
                   np.ndarray[DOUBLE, ndim=2,mode='c'] v,
                   INTEGER num_factors,
                   INTEGER num_attributes,
                   INTEGER n_iter,
-                  INTEGER k0,
-                  INTEGER k1,
                   double w0,
                   double t,
                   double t0,
@@ -123,10 +85,8 @@ cdef class FM_fast(object):
                   method_name,
                   double reg_1,
                   double reg_2,
-                  double gamma,
                   CSRDataset x_test,
-                  np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test,
-                  INTEGER ifall):
+                  np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test):
         self.w0 = w0
         self.w = w
         self.v = v
@@ -136,8 +96,6 @@ cdef class FM_fast(object):
         self.num_factors = num_factors
         self.num_attributes = num_attributes
         self.n_iter = n_iter
-        self.k0 = k0
-        self.k1 = k1
         self.t = 1
         self.t0  = 1
         self.learning_rate = eta0
@@ -166,37 +124,26 @@ cdef class FM_fast(object):
         self.grad_w0 = 0.0
         self.grad_w = np.zeros(self.num_attributes)
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
-        self.U_w = np.zeros(self.num_attributes)
-        self.U_v = np.zeros((self.num_factors,self.num_attributes))
-        self.U_w0 = 1
-        self.T_rda = 1.0
-        self.gamma = gamma
         self.x_test = x_test
         self.y_test = y_test
-        self.ifall = ifall
 
     cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,INTEGER xnnz):
-        #helper variable
         cdef DOUBLE result = 0.0
         cdef INTEGER feature
         cdef INTEGER i = 0
         cdef INTEGER f = 0
         cdef DOUBLE  d
 
-        #map instance variables to local variables
         cdef DOUBLE  w0 = self.w0
         cdef np.ndarray[DOUBLE, ndim = 1,mode='c'] w = self.w
         cdef np.ndarray[DOUBLE, ndim = 2,mode='c'] v = self.v
         cdef np.ndarray[DOUBLE,ndim = 1,mode='c'] sum_ = np.zeros(self.num_factors)
         cdef np.ndarray[DOUBLE,ndim = 1,mode='c'] sum_sqr = np.zeros(self.num_factors)
 
-        if self.k0 > 0:
-            result +=w0
-        if self.k1 > 0:
-            for i in range(xnnz):
-                #x is stored in CSR format
-                feature = x_ind_ptr[i]
-                result += w[feature]*x_data_ptr[i]
+        result +=w0
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            result += w[feature]*x_data_ptr[i]
 
         for f in range(self.num_factors):
             sum_[f] = 0.0
@@ -207,8 +154,6 @@ cdef class FM_fast(object):
                 sum_[f] += d
                 sum_sqr[f] += d*d
             result += 0.5*(sum_[f]*sum_[f]-sum_sqr[f])
-
-        #pass sum to sgd_theta
         self.sum_ = sum_
         return result
 
@@ -307,7 +252,15 @@ cdef class FM_fast(object):
         self.t += 1
         self.count +=1
 
-
+    def return_sparsity(self):
+        cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
+        cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] v = self.v
+        cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] U = np.concatenate((np.reshape(w,(1,self.num_attributes)),v),axis = 0)
+        zeros_ind_total = U==0
+        total = (self.num_factors+1)*self.num_attributes
+        per_total = np.sum(zeros_ind_total)/float(total)
+        per_w = np.sum(w==0)/self.num_attributes
+        return per_w,per_total
         
     def fit(self, CSRDataset dataset):
 
@@ -326,14 +279,11 @@ cdef class FM_fast(object):
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE min_early_stop = sys.maxint
         cdef   INTEGER count_early_stop = 0
-        if self.ifall > 0:
-            num_sample_iter = n_samples
-        else:
-            num_sample_iter  = 100
         cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
         if(self.verbose > 0):
-            fh = open('./results/'+self.dataname+'/'+self.method_name+'/train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
-            fhtest = open('./results/'+self.dataname+'/'+self.method_name+'/test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            num_sample_iter = n_samples
+            fh = open('./results/'+self.dataname+'/'+self.method_name+'/Convergence_train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            fhtest = open('./results/'+self.dataname+'/'+self.method_name+'/Convergence_test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
             #在文件的开头简单介绍一下参数设置
             fhtest.write('reg_1:'+str(self.reg_1)+'\n')
             fhtest.write('reg_2:'+str(self.reg_2)+'\n')
@@ -342,6 +292,8 @@ cdef class FM_fast(object):
             fhtest.write('num_sample_iter:'+str(num_sample_iter)+'\n')
             training_errors = []
             testing_errors = []
+        else:
+            num_sample_iter  = 100
         for epoch in range(self.n_iter):
             if self.verbose >0 :
                 pre_test = self._predict(self.x_test)
@@ -394,11 +346,10 @@ cdef class FM_fast(object):
                     break
 
             itercount +=1
-        
         if(self.verbose>0):
             fh.close()
             fhtest.close()
-            self.draw_line(training_errors,testing_errors,cur_time)
+            #self.draw_line(training_errors,testing_errors,cur_time)
 
     def draw_line(self,training_errors,testing_errors,cur_time):
         lentrain = len(training_errors)

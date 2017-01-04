@@ -20,7 +20,7 @@ def loadData(filename):
     return (data,np.array(y),users,items)
 
 def performance_with_k(data_name,x_train,y_train,x_test,y_test,num_attributes,L_1,L_21,method):
-    candidate_k = [20]
+    candidate_k = [20,40,60]
     cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
     file_varing_k = open('./results/'+data_name+'/'+method+'/performance_varying_k_'+cur_time+'.txt','w')
    
@@ -71,7 +71,7 @@ def sparsity_with_performance(data_name,x_train,y_train,x_test,y_test,num_attrib
     
 if __name__=='__main__':
     #pre setting
-    L_1 = False
+    L_1 = True
     L_21 = True
     train_data_name = 'u2.base'
     test_data_name = 'u2.test'
@@ -110,6 +110,6 @@ if __name__=='__main__':
     print('method: '+ method)
     print('dataset:'+train_data_name)
     print('num_attributes:'+str(num_attributes))
-    #performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
-    sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
+    performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
+    #sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
    

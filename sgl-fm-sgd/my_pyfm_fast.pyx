@@ -1,5 +1,5 @@
 #_*_ coding:utf-8 _*_
-
+ 
 import numpy as np
 import sys
 from libc.math cimport exp,log,pow,sqrt
@@ -42,6 +42,7 @@ cdef class FM_fast(object):
     cdef int verbose
     cdef int L_1
     cdef int L_21
+    cdef int if_pd
 
     cdef DOUBLE  reg_0
     cdef DOUBLE reg_1
@@ -51,7 +52,7 @@ cdef class FM_fast(object):
     cdef DOUBLE grad_w0
     cdef np.ndarray grad_w
     cdef np.ndarray grad_v
-    cdef str dataname
+    cdef str path_detail
     cdef str method_name
     cdef DOUBLE sumloss
     cdef int count 
@@ -74,12 +75,13 @@ cdef class FM_fast(object):
                   int verbose,
                   int L_1,
                   int L_21,
-                  dataname,
+                  path_detail,
                   method_name,
                   double reg_1,
                   double reg_2,
                   CSRDataset x_test,
-                  np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test):
+                  np.ndarray[DOUBLE,ndim=1, mode = 'c'] y_test,
+                  int if_pd):
         self.w0 = w0
         self.w = w
         self.v = v
@@ -103,18 +105,23 @@ cdef class FM_fast(object):
         self.L_1 = L_1
         self.L_21 = L_21
         self.reg_0 = 0.0
-        self.reg_1 = reg_1
-        self.reg_2 = reg_2
-        self.lambda_1 = reg_1*reg_2
-        self.lambda_2 = (1-reg_1)*reg_2*np.sqrt(num_factors)
+        if(if_pd > 0):
+            self.reg_1 = reg_1
+            self.reg_2 = reg_2
+        else:
+            self.lambda_1 = reg_1*reg_2
+            self.lambda_2 = (1-reg_1)*reg_2*np.sqrt(num_factors)
+        self.lambda_1 = reg_1
+        self.lambda_2 = reg_2
         self.sumloss=0.0
         self.count = 0
-        self.dataname = dataname
+        self.path_detail = path_detail
         self.method_name = method_name
         self.grad_w = np.zeros(self.num_attributes)
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
         self.x_test = x_test
         self.y_test = y_test
+        self.if_pd = if_pd
 
     cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz):
         cdef DOUBLE result = 0.0
@@ -265,8 +272,8 @@ cdef class FM_fast(object):
         cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
         if(self.verbose > 0):
             num_sample_iter = n_samples
-            fh = open('./results/'+self.dataname+'/'+self.method_name+'/Convergence_train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
-            fhtest = open('./results/'+self.dataname+'/'+self.method_name+'/Convergence_test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            fh = open(self.path_detail+'/Convergence_train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            fhtest = open(self.path_detail+'/Convergence_test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
             #在文件的开头简单介绍一下参数设置
             fhtest.write('reg_1:'+str(self.reg_1)+'\n')
             fhtest.write('reg_2:'+str(self.reg_2)+'\n')
@@ -314,31 +321,22 @@ cdef class FM_fast(object):
                     self.early_stop_w = self.w
                     self.early_stop_v = self.v
                     count_early_stop = 0
-                if(count_early_stop == 20):
+                if(count_early_stop == 40):
                     print('----EARLY-STOPPING-')
                     self.w0 = self.early_stop_w0
                     self.w = self.early_stop_w
                     self.v = self.early_stop_v
                     break
             itercount +=1
+       
+        self.w0 = self.early_stop_w0
+        self.w = self.early_stop_w
+        self.v = self.early_stop_v
         if(self.verbose > 0):
             fh.close()
             fhtest.close()
-            self.draw_line(training_errors,testing_errors,cur_time)
-
-    def draw_line(self,training_errors,testing_errors,cur_time):
-        lentrain = len(training_errors)
-        lentest  = len(testing_errors)
-        a,subp = plt.subplots(2)
-        subp[0].plot(range(lentrain),training_errors)
-        subp[1].plot(range(lentest),testing_errors)
-        dataname = './results/'+self.dataname+'/figures/'+cur_time+'_reg_1_'+str(self.reg_1)+'_reg_2_'+str(self.reg_2)+'_k_'+str(self.num_factors)
-        plt.savefig(dataname+'.png')
-        plt.show()
-
 
 cdef _squareq(np.ndarray a, INTEGER b):
-
     cdef DOUBLE ret = 0.0
     for i in range(b):
         ret += a[i]**2

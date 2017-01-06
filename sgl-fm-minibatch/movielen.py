@@ -76,46 +76,70 @@ def performance_cross_validation(dataname,x_train,y_train,x_test,y_test,num_attr
     fm.fit(x_train,y_train,x_test,y_test,num_attributes)
     pre_label = fm.predict(x_test,y_test)
 
+
 if __name__=='__main__':
+    #pre setting
     L_1 = True
     L_21 = True
-    train_data_name = 'u2.base'
-    test_data_name = 'u2.test'
+    #training_names = ['train_Genedata.0','train_Genedata.1','train_Genedata.2','train_Genedata.4','train_Genedata.4']
+    #testing_names = ['test_Genedata.0','test_Genedata.1','test_Genedata.2','test_Genedata.3','test_Genedata.4']    
+    training_names = ['train_Genedata.0']
+    testing_names = ['test_Genedata.0']    
+        
+    #training_names=['u4.base']
+    #testing_names=['u4.test']
+    #train_data_name = 'u3.base'
+    #test_data_name = 'u3.test'
     #train_data_name = 'ml-1m-train.txt'
     #test_data_name = 'ml-1m-test.txt'
-    new_data_dir = './results/'+train_data_name
-    if(not os.path.isdir(new_data_dir)):
-        os.mkdir(new_data_dir)
-    if(not os.path.isdir(new_data_dir+'/figures')):
-        os.mkdir(new_data_dir + '/figures')
-    if(L_1 and L_21):
-        method = 'sgl'
-        if(not os.path.isdir(new_data_dir+'/sgl')):
-            os.mkdir(new_data_dir + '/sgl')
-    elif(L_1):
-        method = 'L1'
-        if(not os.path.isdir(new_data_dir + '/L1')):
-            os.mkdir(new_data_dir+'/L1')
-    elif(L_21):
-        method = 'L21'
-        if(not os.path.isdir(new_data_dir+'/L21')):
-            os.mkdir(new_data_dir+'/L21')
+    for ind in range(len(training_names)):
+        train_data_name = training_names[ind]
+        test_data_name = testing_names[ind]
+        new_data_dir = './results/'+train_data_name
+        
+        if(not os.path.isdir(new_data_dir)):
+            os.mkdir(new_data_dir)
+        if(not os.path.isdir(new_data_dir+'/figures')):
+            os.mkdir(new_data_dir + '/figures')
+        if(L_1 and L_21):
+            method = 'sgl'
+            if(not os.path.isdir(new_data_dir+'/sgl')):
+                os.mkdir(new_data_dir + '/sgl')
+        elif(L_1):
+            method = 'L1'
+            if(not os.path.isdir(new_data_dir + '/L1')):
+                os.mkdir(new_data_dir+'/L1')
+        elif(L_21):
+            method = 'L21'
+            if(not os.path.isdir(new_data_dir+'/L21')):
+                os.mkdir(new_data_dir+'/L21')
+        if('Genedata' in train_data_name):
+            train_data = np.loadtxt('../data/'+train_data_name)
+            test_data = np.loadtxt('../data/'+test_data_name)
+            num_attributes = train_data.shape[1]
+            x_train = train_data[:,0:num_attributes-1]
+            x_train = sparse.csr_matrix(x_train)
+            train_label = np.array(train_data[:,num_attributes-1])
+            x_test = test_data[:,0:num_attributes-1]
+            x_test = sparse.csr_matrix(x_test)
+            test_label = np.array(test_data[:,num_attributes-1])
+        else:
+            (train_data,train_label,train_users,train_items)= loadData('../data/'+train_data_name)
+            (test_data,test_label,test_users,test_items)=loadData('../data/'+test_data_name)
+            v = DictVectorizer()
+            x_train=v.fit_transform(train_data)
+            x_test = v.fit_transform(test_data)
 
-    (train_data,train_label,train_users,train_items)= loadData('../data/'+train_data_name)
-    (test_data,test_label,test_users,test_items)=loadData('../data/'+test_data_name)
-    v = DictVectorizer()
-    x_train=v.fit_transform(train_data)
-    x_test = v.fit_transform(test_data)
-
-    if(train_data_name == 'ml-1m-train.txt'):
-        num_attributes = 9940
-    else:
-        num_attributes = 2652
+            if(train_data_name == 'ml-1m-train.txt'):
+                num_attributes = 9940
+            else:
+                num_attributes = 2652
 
 
-    print('method: '+ method)
-    print('dataset:'+train_data_name)
-    print('num_attributes:'+str(num_attributes))
-    #performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
-    performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
-    #sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
+        print('method: '+ method)
+        print('dataset:'+train_data_name)
+        print('num_attributes:'+str(num_attributes))
+        performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
+        #sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
+        #performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
+       

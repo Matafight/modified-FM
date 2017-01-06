@@ -5,7 +5,7 @@ import my_pyfmlib as pylibfm
 import mymultiprocess_crossvalidation as mcv
 import time
 import os
-
+from scipy import sparse
 def loadData(filename):
     data=[]
     y = []
@@ -25,7 +25,7 @@ def performance_with_k(data_name,x_train,y_train,x_test,y_test,num_attributes):
     candidate_k = [20,40,60]
     cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
     file_varing_k = open('./results/'+data_name+'/performance_varying_k.txt','a')
-    file_varing_k.write(cur_time+'\n')
+    file_varing_k.write(cur_time+'\n\n')
     for num_factors in candidate_k:
         print('k:'+str(num_factors))
         print('start crossvalidation--')
@@ -37,7 +37,7 @@ def performance_with_k(data_name,x_train,y_train,x_test,y_test,num_attributes):
         file_varing_k.write('reg_2:'+str(reg_2)+'\n')
         file_varing_k.write('k:'+str(num_factors)+'\n')
         print('crossvalidation finished----')
-        fm = pylibfm.FM(num_factors = num_factors,num_iter = 1000,verbose = False,task = 'regression',initial_learning_rate=0.001,learning_rate_schedule='optimal',dataname = data_name,reg_1 = reg_1,reg_2 = reg_2)
+        fm = pylibfm.FM(num_factors = num_factors,num_iter = 200,verbose = False,task = 'regression',initial_learning_rate=0.001,dataname = data_name,reg_1 = reg_1,reg_2 = reg_2)
         fm.fit(x_train,y_train,x_test,y_test,num_attributes)
         pre_label = fm.predict(x_test,y_test)
         diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
@@ -50,7 +50,7 @@ def sparsity_with_performance(data_name,x_train,y_train,x_test,y_test,num_attrib
     num_factors = 20
     lambda_set = [0.0001,0.001,0.01,0.1]
     fh_sparsity_performance =  open('./results/'+data_name+'/sparsity_performance.txt','a')
-    fh_sparsity_performance.write('---------start-----new------experiments'+'\n')
+    fh_sparsity_performance.write('\n'+'---------start-----new------experiments'+'\n')
     fh_sparsity_performance.write('num_factors:'+str(num_factors)+'\n')
     for lambda_1 in lambda_set:
         for lambda_2 in lambda_set:
@@ -76,33 +76,51 @@ def performance_cross_validation(data_name,x_train,y_train,x_test,y_test,num_att
 
 
 if __name__=='__main__':
+    #training_names = ['train_Genedata.1','train_Genedata.2','train_Genedata.4','train_Genedata.4']
+    #testing_names = ['test_Genedata.1','test_Genedata.2','test_Genedata.3','test_Genedata.4']    
+    #training_names = ['train_Genedata.0']
+    #testing_names = ['test_Genedata.0']    
+    training_names=['u5.base','u3.base','u2.base','u4.base','u1.base']
+    testing_names=['u5.test','u3.test','u2.test','u4.test','u1.base']
+    #train_data_name = 'u3.base'
+    #test_data_name = 'u3.test'
     #train_data_name = 'ml-1m-train.txt'
     #test_data_name = 'ml-1m-test.txt'
-    train_data_name = 'u2.base'
-    test_data_name = 'u2.test'
-    new_data_dir = './results/'+train_data_name
-    if(os.path.isdir(new_data_dir)):
-        print('dir exists')
-    else:
-        print('dir not exists, generate a new dir')
-        os.mkdir(new_data_dir)
-    if(os.path.isdir(new_data_dir+'/figures')):
-        pass
-    else:
-        os.mkdir(new_data_dir+'/figures')
-    (train_data,train_label,train_users,train_items)= loadData('../data/'+train_data_name)
-    (test_data,test_label,test_users,test_items)=loadData('../data/'+test_data_name)
-    v = DictVectorizer()
-    x_train=v.fit_transform(train_data)
-    x_test = v.fit_transform(test_data)
+    for ind in range(len(training_names)):
+        train_data_name = training_names[ind]
+        test_data_name = testing_names[ind]
+        new_data_dir = './results/'+train_data_name
+        
+        if(not os.path.isdir(new_data_dir)):
+            os.mkdir(new_data_dir)
+        if(not os.path.isdir(new_data_dir+'/figures')):
+            os.mkdir(new_data_dir + '/figures')
+        if('Genedata' in train_data_name ):
+            train_data = np.loadtxt('../data/'+train_data_name)
+            test_data = np.loadtxt('../data/'+test_data_name)
+            num_attributes = train_data.shape[1]
+            x_train = train_data[:,0:num_attributes-1]
+            x_train = sparse.csr_matrix(x_train)
+            train_label = np.array(train_data[:,num_attributes-1])
+            x_test = test_data[:,0:num_attributes-1]
+            x_test = sparse.csr_matrix(x_test)
+            test_label = np.array(test_data[:,num_attributes-1])
+        else:
+            (train_data,train_label,train_users,train_items)= loadData('../data/'+train_data_name)
+            (test_data,test_label,test_users,test_items)=loadData('../data/'+test_data_name)
+            v = DictVectorizer()
+            x_train=v.fit_transform(train_data)
+            x_test = v.fit_transform(test_data)
 
-    if(train_data_name == 'ml-1m-train.txt'):
-        num_attributes = 9940
-    else:
-        num_attributes = 2652
-    print('dataset:'+train_data_name+'\n')
-    print('num_attributes:'+str(num_attributes))
-    performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
+            if(train_data_name == 'ml-1m-train.txt'):
+                num_attributes = 9940
+            else:
+                num_attributes = 2652
+
+        print('dataset:'+train_data_name)
+        print('num_attributes:'+str(num_attributes))
+        performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
     #sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
 
-
+ 
+   

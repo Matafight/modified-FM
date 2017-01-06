@@ -19,10 +19,11 @@ class FM:
                  L_1 = True,
                  L_21 = True,
                  seed = 28,
-                 dataname = "unknown",
+                 path_detail = "unknown",
                  method_name = 'sgl',
                  reg_1 = 0.01,
-                 reg_2 = 0.01):
+                 reg_2 = 0.01,
+                 if_pd = False):
         self.num_factors=num_factors
         self.num_iter = num_iter
         self.sum = np.zeros(self.num_factors)
@@ -34,6 +35,7 @@ class FM:
         self.seed = seed
         self.L_1 = L_1
         self.L_21 = L_21
+        self.if_pd = if_pd
 
         #learning rate parameter
         self.eta0 = initial_learning_rate
@@ -45,7 +47,7 @@ class FM:
         self.reg_1 = reg_1
         self.reg_2 = reg_2
         #local parameters in the lambda update
-        self.dataname = dataname
+        self.path_detail = path_detail
         self.method_name = method_name
 
 
@@ -66,6 +68,7 @@ class FM:
 
         L_1 = self._bool_to_int(self.L_1)
         L_21 = self._bool_to_int(self.L_21)
+        if_pd = self._bool_to_int(self.if_pd)
         self.num_attribute = num_attributes
         X_train_dataset = _make_dataset(X,y)
         x_test_data = _make_dataset(x_test,y_test)
@@ -91,12 +94,13 @@ class FM:
                                    verbose,
                                    L_1,
                                    L_21,
-                                   self.dataname,
+                                   self.path_detail,
                                    self.method_name,
                                    self.reg_1,
                                    self.reg_2,
                                    x_test_data,
-                                   y_test)
+                                   y_test,
+                                   if_pd)
         self.fm_fast.fit(X_train_dataset)
 
     def predict(self,X,y):

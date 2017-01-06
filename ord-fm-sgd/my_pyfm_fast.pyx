@@ -261,7 +261,7 @@ cdef class FM_fast(object):
             training_errors = []
             testing_errors = []
         else:
-            n_sample_iter = 100
+            num_sample_iter = 100
         for epoch in range(self.n_iter):
             self.count = 0
             self.sumloss = 0

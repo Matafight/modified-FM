@@ -21,8 +21,8 @@ def loadData(filename):
             items.add(movieid)
     return (data,np.array(y),users,items)
 
-def performance_with_k(x_train,y_train,x_test,y_test,num_attributes,L_1,L_21,path_detail,if_pd):
-    candidate_k = [20,40,60]
+def performance_with_k(x_train,y_train,x_test,y_test,x_valid,valid_label,num_attributes,L_1,L_21,path_detail,if_pd):
+    candidate_k = [80,100,120]
     cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
     file_varing_k = open(path_detail + '/performance_varying_k.txt','a')
     file_varing_k.write(cur_time+'\n\n')
@@ -38,7 +38,7 @@ def performance_with_k(x_train,y_train,x_test,y_test,num_attributes,L_1,L_21,pat
         file_varing_k.write('k:'+str(num_factors)+'\n')
         print('crossvalidation finished---')
         fm = pylibfm.FM(num_factors = num_factors,num_iter = 1000,verbose = False,L_1 = L_1,L_21 = L_21,task = 'regression',initial_learning_rate=0.001,path_detail = path_detail,reg_1 = reg_1,reg_2 = reg_2,if_pd = if_pd)
-        fm.fit(x_train,y_train,x_test,y_test,num_attributes)
+        fm.fit(x_train,y_train,x_valid,valid_label,num_attributes)
         pre_label = fm.predict(x_test,y_test)
         diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
         file_varing_k.write(str(diff)+'\n')
@@ -100,11 +100,11 @@ if __name__=='__main__':
         pass
     sdn = results_arg.short_data_name
     if(sdn in 'train_Genedata'):
-        training_names = ['train_Genedata.1','train_Genedata.2','train_Genedata.4','train_Genedata.4']
-        testing_names = ['test_Genedata.1','test_Genedata.2','test_Genedata.3','test_Genedata.4'] 
+        training_names = ['train_Genedata.0','train_Genedata.1','train_Genedata.2','train_Genedata.4','train_Genedata.4']
+        testing_names = ['test_Genedata.0','test_Genedata.1','test_Genedata.2','test_Genedata.3','test_Genedata.4']
     elif(sdn in 'u2.base'):
-        training_names=['u5.base','u3.base','u2.base','u4.base','u1.base']
-        testing_names=['u5.test','u3.test','u2.test','u4.test','u1.base']
+        training_names=['u1.base','u2.base','u3.base','u4.base','u5.base']
+        testing_names=['u1.test','u2.test','u3.test','u4.test','u5.base']
     elif(sdn in 'ml-1m-train'):
         training_names = ['ml-1m-train.txt']
         testing_names = ['ml-1m-test.txt']
@@ -177,7 +177,7 @@ if __name__=='__main__':
         print('num_attributes:'+str(num_attributes))
         
        
-        performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,path_detail,if_pd)
+        performance_with_k(x_train,train_label,x_test,test_label,x_valid,valid_label,num_attributes,L_1,L_21,path_detail,if_pd)
         #sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21, path_detail, if_pd)
         #performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
        

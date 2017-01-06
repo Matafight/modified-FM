@@ -59,7 +59,7 @@ class FM:
             return 0
 
 
-    def fit(self,X,y,x_test,y_test,num_attributes):
+    def fit(self,X,y,x_test,y_test,x_valid,y_valid,num_attributes):
         if type(y)!= np.ndarray:
             y = np.array(y)
         self.max_target = max(y)
@@ -72,6 +72,7 @@ class FM:
         self.num_attribute = num_attributes
         X_train_dataset = _make_dataset(X,y)
         x_test_data = _make_dataset(x_test,y_test)
+        x_valid_data = _make_dataset(x_valid,y_valid)
         #setup params
         self.w0 = 0.0
         self.w = np.zeros(self.num_attribute)
@@ -100,6 +101,8 @@ class FM:
                                    self.reg_2,
                                    x_test_data,
                                    y_test,
+                                   x_valid_data,
+                                   y_valid,
                                    if_pd)
         self.fm_fast.fit(X_train_dataset)
 

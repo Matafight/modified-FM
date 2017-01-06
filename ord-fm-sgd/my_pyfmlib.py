@@ -72,7 +72,7 @@ class FM:
             return 0
 
 
-    def fit(self,X,y,x_test,y_test,num_attributes):
+    def fit(self,X,y,x_test,y_test,x_valid,y_valid,num_attributes):
         if type(y)!= np.ndarray:
             y = np.array(y)
         self._validate_params()
@@ -89,6 +89,7 @@ class FM:
 
         #x_test_data = _make_dataset(x_test,np.ones(x_test.shape[0]))
         x_test_data = _make_dataset(x_test,y_test)
+        x_valid_data = _make_dataset(x_valid,y_valid)
         #setup params
         self.w0 = 0.0
         self.w = np.zeros(self.num_attribute)
@@ -116,7 +117,9 @@ class FM:
                                    self.reg_1,
                                    self.reg_2,
                                    x_test_data,
-                                   y_test)
+                                   y_test,
+                                   x_valid_data,
+                                   y_valid)
         return self.fm_fast.fit(X_train_dataset)
 
     def predict(self,X,y):

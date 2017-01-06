@@ -59,6 +59,8 @@ cdef class FM_fast(object):
     cdef int count 
     cdef CSRDataset x_test
     cdef np.ndarray y_test
+    cdef CSRDataset x_valid
+    cdef np.ndarray y_valid
     def __init__(self,
                   np.ndarray[DOUBLE,ndim=1,mode='c'] w,
                   np.ndarray[DOUBLE, ndim=2,mode='c'] v,
@@ -81,7 +83,9 @@ cdef class FM_fast(object):
                   double reg_1,
                   double reg_2,
                   CSRDataset x_test,
-                  np.ndarray[DOUBLE,ndim=1, mode  = 'c'] y_test):
+                  np.ndarray[DOUBLE, ndim=1, mode  = 'c'] y_test,
+                  CSRDataset x_valid,
+                  np.ndarray[DOUBLE, ndim = 1,mode = 'c'] y_valid):
         self.w0 = w0
         self.w = w
         self.v = v
@@ -116,6 +120,8 @@ cdef class FM_fast(object):
 
         self.x_test = x_test
         self.y_test = y_test
+        self.x_valid = x_valid
+        self.y_valid = y_valid
 
     cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz):
         #helper variable
@@ -253,6 +259,7 @@ cdef class FM_fast(object):
             cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
             fh = open('./results/'+self.dataname+'/Convergence_train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_.txt','w')
             fhtest = open('./results/'+self.dataname+'/Convergence_test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_.txt','w')
+            fhvalid = open('./results/'+self.dataname+'/Convergence_valid_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_k_'+str(self.num_factors)+'_.txt','w')
             fhtest.write('reg_1:'+str(self.reg_1)+'\n')
             fhtest.write('reg_2:'+str(self.reg_2)+'\n')
             fhtest.write('num_factors:'+str(self.num_factors)+'\n')
@@ -286,10 +293,13 @@ cdef class FM_fast(object):
                     print("=======test_error===="+str(iter_error))
                     fhtest.write(str(iter_error)+'\n')
                     testing_errors.append(iter_error)
+                    pre_valid = self._predict(self.x_valid)
+                    valid_error = 0.5*np.sum((pre_valid-self.y_valid)**2)/self.y_valid.shape[0]
+                    fhvalid.write(str(valid_error)+'\n')
             else:
                 iter_error = 0.0
-                pre_test = self._predict(self.x_test)
-                iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
+                pre_valid = self._predict(self.x_valid)
+                iter_error = 0.5*np.sum((pre_valid-self.y_valid)**2)/self.y_valid.shape[0]
                 count_early_stop += 1
                 if(iter_error < min_early_stop):
                     min_early_stop = iter_error
@@ -305,6 +315,10 @@ cdef class FM_fast(object):
                     break
 
             itercount +=1
+        if(self.verbose <= 0):
+            self.w0 = self.early_stop_w0
+            self.w = self.early_stop_w
+            self.v = self.early_stop_v
         if(self.verbose>0):
             self.draw_line(training_errors,testing_errors,cur_time)
             fh.close()

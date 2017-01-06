@@ -21,7 +21,7 @@ def loadData(filename):
     return (data,np.array(y),users,items)
 
 
-def performance_with_k(data_name,x_train,y_train,x_test,y_test,num_attributes):
+def performance_with_k(data_name,x_train,y_train,x_test,y_test,x_valid,valid_label,num_attributes):
     candidate_k = [20,40,60]
     cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
     file_varing_k = open('./results/'+data_name+'/performance_varying_k.txt','a')
@@ -38,7 +38,7 @@ def performance_with_k(data_name,x_train,y_train,x_test,y_test,num_attributes):
         file_varing_k.write('k:'+str(num_factors)+'\n')
         print('crossvalidation finished----')
         fm = pylibfm.FM(num_factors = num_factors,num_iter = 200,verbose = False,task = 'regression',initial_learning_rate=0.001,dataname = data_name,reg_1 = reg_1,reg_2 = reg_2)
-        fm.fit(x_train,y_train,x_test,y_test,num_attributes)
+        fm.fit(x_train,y_train,x_test,y_test,x_valid,valid_label,num_attributes)
         pre_label = fm.predict(x_test,y_test)
         diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
         file_varing_k.write(str(diff)+'\n')
@@ -119,7 +119,7 @@ if __name__=='__main__':
 
         print('dataset:'+train_data_name)
         print('num_attributes:'+str(num_attributes))
-        performance_with_k(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
+        performance_with_k(train_data_name,x_train,train_label,x_test,test_label,x_valid,valid_label,num_attributes)
     #sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes)
 
  

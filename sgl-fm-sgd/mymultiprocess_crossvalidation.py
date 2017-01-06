@@ -51,8 +51,8 @@ class cross_val_regularization:
         print('---running---'+str(seq)+'----subthread')
         for reg_1_cro in range(self.length_1):
             for reg_2_cro in range(self.length_2):
-                fm = pylibfm.FM(num_factors = self.numfactors,num_iter=50,verbose = False,L_1 = self.L_1,L_21=self.L_21,task="regression",initial_learning_rate=0.001,path_detail=self.path_detail,reg_1 = self.reg_set_1[reg_1_cro], reg_2 = self.reg_set_2[reg_2_cro],if_pd = self.if_pd)
-                fm.fit(x_train,y_train,x_test,y_test,self.num_attributes)
+                fm = pylibfm.FM(num_factors = self.numfactors,num_iter=200,verbose = False,L_1 = self.L_1,L_21=self.L_21,task="regression",initial_learning_rate=0.001,path_detail=self.path_detail,reg_1 = self.reg_set_1[reg_1_cro], reg_2 = self.reg_set_2[reg_2_cro],if_pd = self.if_pd)
+                fm.fit(x_train,y_train,x_test,y_test,x_valid = x_test,y_valid = y_test,self.num_attributes)
                 pre_label = fm.predict(x_test,y_test)
                 diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
                 self.reg_ret[reg_1_cro,reg_2_cro] = self.reg_ret[reg_1_cro,reg_2_cro] + diff

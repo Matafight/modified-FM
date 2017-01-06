@@ -157,6 +157,12 @@ if __name__=='__main__':
             x_train=v.fit_transform(train_data)
             x_test = v.fit_transform(test_data)
 
+            size_train = x_train.shape[0]
+            size_valid = int(size_train*0.1)
+            x_valid =  x_train[:size_valid,:]
+            valid_label = train_label[:size_valid]
+            x_train = x_train[size_valid:,:]
+            train_label = train_label[size_valid:]
             if('ml-1m' in train_data_name):
                 num_attributes = 9940
             elif('base' in train_data_name):
@@ -171,6 +177,13 @@ if __name__=='__main__':
             x_test = test_data[:,0:num_attributes-1]
             x_test = sparse.csr_matrix(x_test)
             test_label = np.array(test_data[:,num_attributes-1])
+
+            size_train = x_train.shape[0]
+            size_valid =int(size_train*0.1)
+            x_valid = x_train[:size_valid,:]
+            valid_label = train_label[:size_valid]
+            x_train = x_train[size_valid:,:]
+            train_label = train_label[size_valid:]
 
         print('method:'+ method)
         print('dataset:'+train_data_name)

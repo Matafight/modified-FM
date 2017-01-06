@@ -28,7 +28,7 @@ class cross_val_regularization:
         self.L_21 = L_21
 
     def sele_para(self):
-        kf = KFold(np.shape(self.train_data)[0],n_folds = 5)
+        kf = KFold(np.shape(self.train_data)[0],n_folds = 3)
         count = 1
         threadlist=[]
         for train_index,valid_index in kf:

@@ -98,8 +98,8 @@ if __name__=='__main__':
         L_1 = False
         L_21 = True
     else:
-        #raise error here
-        pass
+        L_1 = False
+        L_21 = False
     sdn = results_arg.short_data_name
     if(sdn in 'train_Genedata'):
         training_names = ['train_Genedata.0','train_Genedata.1','train_Genedata.2','train_Genedata.4','train_Genedata.4']
@@ -134,6 +134,11 @@ if __name__=='__main__':
             method = 'L21'
             if(not os.path.isdir(new_data_dir+'/L21')):
                 os.mkdir(new_data_dir+'/L21')
+        else:
+            method = 'ord'
+            if(not os.path.isdir(new_data_dir+'/ord')):
+                os.mkdir(new_data_dir+'/ord')
+
         if(results_arg.if_mini_batch == True):
             mini_batch = True
         else:

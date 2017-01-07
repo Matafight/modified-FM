@@ -177,6 +177,61 @@ cdef class FM_fast(object):
             return_preds[i] = p
         return return_preds
 
+    cdef _sgd_theta_step(self,DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz,DOUBLE y):
+        cdef DOUBLE mult = 0.0
+        cdef DOUBLE p
+        cdef int feature
+        cdef unsigned int i=0
+        cdef unsigned int f=0
+        cdef DOUBLE d
+        cdef DOUBLE grad_0
+
+        cdef DOUBLE w0 = self.w0
+        cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
+        cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] v = self.v
+        cdef np.ndarray[DOUBLE, ndim = 1,mode='c'] grad_w = self.grad_w
+        cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] grad_v = self.grad_v
+        cdef DOUBLE learning_rate = self.learning_rate
+        cdef DOUBLE reg_0 = self.reg_0
+        cdef DOUBLE reg_1 = self.reg_1
+        cdef DOUBLE reg_2 = self.reg_2
+
+        # have already calculate sum_
+        p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
+
+        # regression task
+        p = min(self.max_target,p)
+        p = max(self.min_target,p)
+        mult = 2*(p-y)
+
+        #set learning schedule
+        self.learning_rate = 1.0/(self.t + self.t0)
+
+        self.sumloss += _squared_loss(p,y)
+        #update global bias
+        grad_0 = mult
+        w0 -= learning_rate*(grad_0 + 2*reg_0*w0)
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            grad_w[feature]= mult*x_data_ptr[i]
+
+            w[feature] -= learning_rate*(grad_w[feature]+ 2*reg_1*w[feature])
+
+        for f in range(self.num_factors):
+            for i in range(xnnz):
+                feature = x_ind_ptr[i]
+                grad_v[f,feature] = mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature])
+                v[f,feature] -= learning_rate*(grad_v[f,feature] + 2*reg_2*v[f,feature])
+
+        self.learning_rate = learning_rate
+        self.w0 = w0
+        self.w = w
+        self.v = v
+        self.grad_w = grad_w
+        self.grad_v = grad_v
+        self.t +=1
+        self.count +=1
+
     cdef _update_grad_minibatch(self,DOUBLE * x_data_ptr, INTEGER * x_ind_ptr, INTEGER xnnz, DOUBLE y):
         cdef DOUBLE grad_w0 = self.grad_w0
         cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] grad_w = self.grad_w
@@ -204,8 +259,40 @@ cdef class FM_fast(object):
         self.grad_w0 = grad_w0
         self.grad_w = grad_w
         self.grad_v = grad_v
-        
-    cdef _average_and_update(self,INTEGER num_samples):
+
+
+
+    cdef _average_and_update_ord(self,int num_samples):
+        #update w0,w,v,learning_rate, set grad_w0,grad_w,grad_v to be zeros
+        cdef DOUBLE w0 = self.w0
+        cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] w = self.w
+        cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] v = self.v
+        cdef DOUBLE grad_w0 = self.grad_w0
+        cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] grad_w = self.grad_w
+        cdef np.ndarray[DOUBLE, ndim = 2, mode = 'c'] grad_v = self.grad_v
+        cdef DOUBLE learning_rate = self.learning_rate
+        cdef DOUBLE mynum_samples = num_samples
+        cdef DOUBLE reg_1 = self.reg_1
+        cdef DOUBLE reg_2 = self.reg_2
+        grad_w0 = grad_w0/mynum_samples
+        grad_w = grad_w/mynum_samples
+        grad_v = grad_v/mynum_samples
+        learning_rate = 1.0/(self.t + self.t0)
+
+        w0 = w0 - learning_rate*grad_w0
+        w = w - learning_rate*(grad_w+2*reg_1*w)
+        v = v - learning_rate*(grad_v+2*reg_2*v)
+       
+        self.grad_w0 = 0.0
+        self.grad_w = np.zeros((self.num_attributes))
+        self.grad_v = np.zeros((self.num_factors,self.num_attributes))
+        self.w0 = w0
+        self.w = w
+        self.v = v
+        self.t += 1
+        self.count +=1        
+
+    cdef _average_and_update_sgl(self,INTEGER num_samples):
         #update w0,w,v,learning_rate, set grad_w0,grad_w,grad_v to be zeros
         cdef DOUBLE w0 = self.w0
         cdef np.ndarray[DOUBLE, ndim = 1, mode = 'c'] w = self.w
@@ -277,7 +364,6 @@ cdef class FM_fast(object):
         #update bias
         grad_0 = mult
         w0 -= learning_rate*(grad_0)
-        #w0 -= learning_rate*(grad_0+2*0.001*w0)
         for i in range(xnnz):
             feature = x_ind_ptr[i]
             grad_w[feature] = mult*x_data_ptr[i]
@@ -347,6 +433,12 @@ cdef class FM_fast(object):
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE min_early_stop = sys.maxint
         cdef unsigned int count_early_stop = 0
+        #judge if ord or sgl is used
+        if(self.L_1 <= 0 and self.L_21 <= 0):
+            if_ord = True
+        else:
+            if_ord = False
+
         cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
         if(self.verbose > 0):
             num_sample_iter = n_samples
@@ -377,11 +469,18 @@ cdef class FM_fast(object):
                 for i in selected_list:
                     dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,i)
                     self._update_grad_minibatch(x_data_ptr,x_ind_ptr,xnnz,y)
-                self._average_and_update(num_sample_iter)
+                if(if_ord == False):
+                    self._average_and_update_sgl(num_sample_iter)
+                else:
+                    self._average_and_update_ord(num_sample_iter)
             else:
                 for i in selected_list:
                     dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,i)
-                    self._sgd_FOBO_MYR_step(x_data_ptr,x_ind_ptr,xnnz,y)
+                    if(if_ord == False):
+                        self._sgd_FOBO_MYR_step(x_data_ptr,x_ind_ptr,xnnz,y)
+                    else:
+                        self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
+
 
             if self.verbose > 0:
                 if(itercount % 10 ==0):

@@ -23,7 +23,8 @@ class FM:
                  method_name = 'sgl',
                  reg_1 = 0.01,
                  reg_2 = 0.01,
-                 if_pd = False):
+                 if_pd = False,
+                 mini_batch = False):
         self.num_factors=num_factors
         self.num_iter = num_iter
         self.sum = np.zeros(self.num_factors)
@@ -46,9 +47,9 @@ class FM:
         self.reg_0 = 0.01
         self.reg_1 = reg_1
         self.reg_2 = reg_2
-        #local parameters in the lambda update
         self.path_detail = path_detail
         self.method_name = method_name
+        self.mini_batch = mini_batch
 
 
   
@@ -69,6 +70,7 @@ class FM:
         L_1 = self._bool_to_int(self.L_1)
         L_21 = self._bool_to_int(self.L_21)
         if_pd = self._bool_to_int(self.if_pd)
+        mini_batch = self._bool_to_int(self.mini_batch)
         self.num_attribute = num_attributes
         X_train_dataset = _make_dataset(X,y)
         x_test_data = _make_dataset(x_test,y_test)
@@ -103,7 +105,8 @@ class FM:
                                    y_test,
                                    x_valid_data,
                                    y_valid,
-                                   if_pd)
+                                   if_pd,
+                                   mini_batch)
         self.fm_fast.fit(X_train_dataset)
 
     def predict(self,X,y):

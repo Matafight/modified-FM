@@ -304,9 +304,7 @@ cdef class FM_fast(object):
             self.sumloss = 0
             if self.shuffle_training:
                 dataset.shuffle(self.seed)
-
             selected_list = random.sample(range(n_samples),num_sample_iter)
-          
             for i in selected_list:
                 dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,i)
                 #mini batch

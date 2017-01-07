@@ -21,7 +21,7 @@ def loadData(filename):
             items.add(movieid)
     return (data,np.array(y),users,items)
 
-def performance_with_k(x_train,y_train,x_test,y_test,x_valid,valid_label,num_attributes,L_1,L_21,path_detail,if_pd):
+def performance_with_k(x_train,y_train,x_test,y_test,x_valid,valid_label,num_attributes,L_1,L_21,path_detail,if_pd,mini_batch):
     candidate_k = [80,100,120]
     cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
     file_varing_k = open(path_detail + '/performance_varying_k.txt','a')
@@ -29,7 +29,7 @@ def performance_with_k(x_train,y_train,x_test,y_test,x_valid,valid_label,num_att
     for num_factors in candidate_k:
         print('k:'+str(num_factors)+'\n') 
         print('start crossvalidation---')
-        mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors, path_detail = path_detail,num_attributes = num_attributes,L_1 = L_1,L_21 = L_21,if_pd = if_pd)
+        mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors, path_detail = path_detail,num_attributes = num_attributes,L_1 = L_1,L_21 = L_21,if_pd = if_pd,mini_batch = mini_batch)
         best_reg = mycv.sele_para()
         reg_1 = best_reg[0]
         reg_2 = best_reg[1]
@@ -37,7 +37,7 @@ def performance_with_k(x_train,y_train,x_test,y_test,x_valid,valid_label,num_att
         file_varing_k.write('reg_2:'+str(reg_2)+'\n')
         file_varing_k.write('k:'+str(num_factors)+'\n')
         print('crossvalidation finished---')
-        fm = pylibfm.FM(num_factors = num_factors,num_iter = 1000,verbose = False,L_1 = L_1,L_21 = L_21,task = 'regression',initial_learning_rate=0.001,path_detail = path_detail,reg_1 = reg_1,reg_2 = reg_2,if_pd = if_pd)
+        fm = pylibfm.FM(num_factors = num_factors,num_iter = 1000,verbose = False,L_1 = L_1,L_21 = L_21,task = 'regression',initial_learning_rate=0.001,path_detail = path_detail,reg_1 = reg_1,reg_2 = reg_2,if_pd = if_pd,mini_batch = mini_batch)
         fm.fit(x_train,y_train,x_test,y_test,x_valid,valid_label,num_attributes)
         pre_label = fm.predict(x_test,y_test)
         diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
@@ -84,7 +84,9 @@ if __name__=='__main__':
     parser.add_argument('-algorithm', action= 'store', dest= 'alg_name',type= str)
     parser.add_argument('-pd',action = 'store_true',dest = 'if_para_diff',default = False)
     parser.add_argument('-pr',action = 'store_false',dest = 'if_para_diff',default = False)
-    parser.add_argument('-pmz',action = 'store',dest = 'pmz',type = str )
+    parser.add_argument('-pmz',action = 'store',dest = 'pmz',type = str)
+    parser.add_argument('-mini_batch',action = 'store_true',dest = 'if_mini_batch',default = False)
+    parser.add_argument('-only_sgd',action = 'store_true',dest = 'if_mini_batch',default = False)
     results_arg = parser.parse_args()
     if(results_arg.alg_name == 'sgl'):
         L_1 = True
@@ -112,13 +114,7 @@ if __name__=='__main__':
         #raise error here
         print('The data has not found!!!!!!!!!')
         
-    if(results_arg.if_para_diff == True):
-        print('we use different lambda_1 lambda_2')
-        if_pd = True
-    else:
-        print('we use the relevant alpha lambda')
-        if_pd = False
-
+    
     for ind in range(len(training_names)):
         train_data_name = training_names[ind]
         test_data_name = testing_names[ind]
@@ -126,13 +122,10 @@ if __name__=='__main__':
         
         if(not os.path.isdir(new_data_dir)):
             os.mkdir(new_data_dir)
-        if(not os.path.isdir(new_data_dir+'/figures')):
-            os.mkdir(new_data_dir + '/figures')
         if(L_1 and L_21):
             method = 'sgl'
             if(not os.path.isdir(new_data_dir+'/sgl')):
                 os.mkdir(new_data_dir + '/sgl')
-                
         elif(L_1):
             method = 'L1'
             if(not os.path.isdir(new_data_dir + '/L1')):
@@ -141,15 +134,24 @@ if __name__=='__main__':
             method = 'L21'
             if(not os.path.isdir(new_data_dir+'/L21')):
                 os.mkdir(new_data_dir+'/L21')
-        if(if_pd == True):
-            if(not os.path.isdir(new_data_dir +'/' + method +'/pd')):
-                 os.mkdir(new_data_dir + '/'+ method +'/pd')
-            path_detail = new_data_dir + '/'+ method +'/pd/'
-        if(if_pd == False):
-             if(not os.path.isdir(new_data_dir +'/'+ method +'/pr')):
-                 os.mkdir(new_data_dir +'/' + method +'/pr')
-             path_detail = new_data_dir +'/' + method +'/pr/'
-        
+        if(results_arg.if_mini_batch == True):
+            mini_batch = True
+        else:
+            mini_batch = False
+
+        if(results_arg.if_para_diff == True):
+            print('we use different lambda_1 lambda_2')
+            if_pd = True
+            if(not os.path.isdir(new_data_dir +'/' + method +'/pd_'+str(mini_batch))):
+                 os.mkdir(new_data_dir + '/'+ method +'/pd_'+str(mini_batch))
+            path_detail = new_data_dir + '/'+ method +'/pd_'+str(mini_batch)+'/'
+        else:
+            print('we use the relevant alpha lambda')
+            if_pd = False
+            if(not os.path.isdir(new_data_dir +'/'+ method +'/pr_'+str(mini_batch))):
+                os.mkdir(new_data_dir +'/' + method +'/pr_'+str(mini_batch))
+            path_detail = new_data_dir +'/' + method +'/pr_'+str(mini_batch)+'/'
+       
         if('ml-1m' in train_data_name or 'base' in train_data_name):
             (train_data,train_label,train_users,train_items)= loadData('../data/'+train_data_name)
             (test_data,test_label,test_users,test_items)=loadData('../data/'+test_data_name)
@@ -190,7 +192,7 @@ if __name__=='__main__':
         print('num_attributes:'+str(num_attributes))
         
        
-        performance_with_k(x_train,train_label,x_test,test_label,x_valid,valid_label,num_attributes,L_1,L_21,path_detail,if_pd)
+        performance_with_k(x_train,train_label,x_test,test_label,x_valid,valid_label,num_attributes,L_1,L_21,path_detail,if_pd,mini_batch)
         #sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21, path_detail, if_pd)
         #performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
        

@@ -22,7 +22,7 @@ def loadData(filename):
 
 
 def performance_with_k(data_name,x_train,y_train,x_test,y_test,x_valid,valid_label,num_attributes):
-    candidate_k = [20,40,60]
+    candidate_k = [80,100,120]
     cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
     file_varing_k = open('./results/'+data_name+'/performance_varying_k.txt','a')
     file_varing_k.write(cur_time+'\n\n')
@@ -80,8 +80,8 @@ if __name__=='__main__':
     #testing_names = ['test_Genedata.1','test_Genedata.2','test_Genedata.3','test_Genedata.4']    
     #training_names = ['train_Genedata.0']
     #testing_names = ['test_Genedata.0']    
-    training_names=['u5.base','u3.base','u2.base','u4.base','u1.base']
-    testing_names=['u5.test','u3.test','u2.test','u4.test','u1.base']
+    training_names=['u1.base','u2.base','u3.base','u4.base','u5.base']
+    testing_names=['u1.test','u2.test','u3.test','u4.test','u5.base']
     #train_data_name = 'u3.base'
     #test_data_name = 'u3.test'
     #train_data_name = 'ml-1m-train.txt'

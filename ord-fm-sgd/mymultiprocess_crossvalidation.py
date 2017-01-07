@@ -7,14 +7,21 @@ from multiprocessing import Process, Lock
 class cross_val_regularization:
 
     def __init__(self,train_data,train_label,num_factors,dataname,num_attributes):
-        self.reg_set = [0.0001,0.00001,0.001,0.01,0.1,1,10,100]
+        self.reg_set = [0.00001,0.0001,0.001,0.01,0.1,1]
         self.length = len(self.reg_set)
         self.numfactors = num_factors
         self.num_attributes = num_attributes
-        self.train_data = train_data
-        self.train_label = train_label
+
+        size_train = train_data.shape[0]
+        size_valid = int(0.1*size_train)
+        self.valid_data = train_data[:size_valid,:]
+        self.valid_label = train_label[:size_valid]
+        self.train_data = train_data[size_valid:,:]
+        self.train_label = train_label[size_valid:]
+
         self.dataname = dataname
         self.reg_ret = np.zeros((len(self.reg_set),len(self.reg_set)))
+
     def sele_para(self):
 
         kf = KFold(np.shape(self.train_data)[0],n_folds = 3)
@@ -40,7 +47,7 @@ class cross_val_regularization:
         for reg_1_cro in range(self.length):
             for reg_2_cro in range(self.length):
                 fm = pylibfm.FM(num_factors = self.numfactors,num_iter=200,verbose = False,task="regression",initial_learning_rate=0.001,dataname=self.dataname,reg_1 = self.reg_set[reg_1_cro], reg_2 = self.reg_set[reg_2_cro])
-                fm.fit(x_train,y_train,x_test,y_test,x_valid = x_test,y_valid = y_test,self.num_attributes)
+                fm.fit(x_train,y_train,x_test,y_test,self.valid_data,self.valid_label,self.num_attributes)
                 pre_label = fm.predict(x_test,y_test)
                 diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
                 self.reg_ret[reg_1_cro,reg_2_cro] = self.reg_ret[reg_1_cro,reg_2_cro] + diff

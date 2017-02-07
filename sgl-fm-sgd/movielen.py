@@ -21,27 +21,34 @@ def loadData(filename):
             items.add(movieid)
     return (data,np.array(y),users,items)
 
-def performance_with_k(x_train,y_train,x_test,y_test,x_valid,valid_label,num_attributes,L_1,L_21,path_detail,if_pd,mini_batch):
-    candidate_k = [80,100,120]
+def performance_with_k(x_train,y_train,x_test,y_test,L_1,L_21,path_detail,if_pd,mini_batch):
+    candidate_k = [10]
     cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
     file_varing_k = open(path_detail + '/performance_varying_k.txt','a')
     file_varing_k.write(cur_time+'\n\n')
-    for num_factors in candidate_k:
-        print('k:'+str(num_factors)+'\n') 
-        print('start crossvalidation---')
-        mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors, path_detail = path_detail,num_attributes = num_attributes,L_1 = L_1,L_21 = L_21,if_pd = if_pd,mini_batch = mini_batch)
-        best_reg = mycv.sele_para()
-        reg_1 = best_reg[0]
-        reg_2 = best_reg[1]
-        file_varing_k.write('reg_1:'+str(reg_1)+'\n')
-        file_varing_k.write('reg_2:'+str(reg_2)+'\n')
-        file_varing_k.write('k:'+str(num_factors)+'\n')
-        print('crossvalidation finished---')
-        fm = pylibfm.FM(num_factors = num_factors,num_iter = 1000,verbose = False,L_1 = L_1,L_21 = L_21,task = 'regression',initial_learning_rate=0.001,path_detail = path_detail,reg_1 = reg_1,reg_2 = reg_2,if_pd = if_pd,mini_batch = mini_batch)
-        fm.fit(x_train,y_train,x_test,y_test,x_valid,valid_label,num_attributes)
-        pre_label = fm.predict(x_test,y_test)
-        diff = 0.5*np.sum((pre_label-y_test)**2)/y_test.size
-        file_varing_k.write(str(diff)+'\n')
+    #reg_set = [0.0000001,0.000001,0.00001,0.0001]
+    reg_set1 = [0.00001,0.00002,0.00003,0.00004,0.00005,0.00006,0.00007,0.00008,0.00009]
+    reg_set2 = [0.000001,0.000002,0.000003,0.000004,0.000005,0.000006,0.000007,0.000008,0.000009]
+    for reg_1 in reg_set1:
+        for reg_2 in reg_set2:
+            for num_factors in candidate_k:
+                print('k:'+str(num_factors)+'\n') 
+                print('start crossvalidation---')
+                #mycv = mcv.cross_val_regularization(train_data = x_train,train_label = train_label,num_factors = num_factors, path_detail = path_detail,L_1 = L_1,L_21 = L_21,if_pd = if_pd,mini_batch = mini_batch)
+                #best_reg = mycv.sele_para()
+                #reg_1 = best_reg[0]
+                #reg_2 = best_reg[1]
+                #reg_1 = 0.00001
+                #reg_2 = 0.000005
+                file_varing_k.write('reg_1:'+str(reg_1)+'\n')
+                file_varing_k.write('reg_2:'+str(reg_2)+'\n')
+                file_varing_k.write('k:'+str(num_factors)+'\n')
+                print('crossvalidation finished---')
+                fm = pylibfm.FM(num_factors = num_factors,num_iter = 300,verbose = True,L_1 = L_1,L_21 = L_21,task = 'regression',initial_learning_rate=0.001,path_detail = path_detail,reg_1 = reg_1,reg_2 = reg_2,if_pd = if_pd,mini_batch = mini_batch)
+                fm.fit(x_train,y_train,x_test,y_test)
+                pre_label = fm.predict(x_test,y_test)
+                diff = np.sum((pre_label-y_test)**2)/y_test.size
+                file_varing_k.write(str(diff)+'\n')
     file_varing_k.close()
 
 
@@ -105,8 +112,8 @@ if __name__=='__main__':
         training_names = ['train_Genedata.0','train_Genedata.1','train_Genedata.2','train_Genedata.4','train_Genedata.4']
         testing_names = ['test_Genedata.0','test_Genedata.1','test_Genedata.2','test_Genedata.3','test_Genedata.4']
     elif(sdn in 'u2.base'):
-        training_names=['u1.base','u2.base','u3.base','u4.base','u5.base']
-        testing_names=['u1.test','u2.test','u3.test','u4.test','u5.base']
+        training_names=['u1.base','u3.base','u4.base','u5.base']
+        testing_names=['u1.test','u3.test','u4.test','u5.base']
     elif(sdn in 'ml-1m-train'):
         training_names = ['ml-1m-train.txt']
         testing_names = ['ml-1m-test.txt']
@@ -162,18 +169,14 @@ if __name__=='__main__':
             (test_data,test_label,test_users,test_items)=loadData('../data/'+test_data_name)
             v = DictVectorizer()
             x_train=v.fit_transform(train_data)
-            x_test = v.fit_transform(test_data)
+            x_test = v.transform(test_data)
 
-            size_train = x_train.shape[0]
-            size_valid = int(size_train*0.1)
-            x_valid =  x_train[:size_valid,:]
-            valid_label = train_label[:size_valid]
-            x_train = x_train[size_valid:,:]
-            train_label = train_label[size_valid:]
-            if('ml-1m' in train_data_name):
-                num_attributes = 9940
-            elif('base' in train_data_name):
-                num_attributes = 2652
+            #size_train = x_train.shape[0]
+            #size_valid = int(size_train*0.1)
+            #x_valid =  x_train[:size_valid,:]
+            #valid_label = train_label[:size_valid]
+            #x_train = x_train[size_valid:,:]
+            #train_label = train_label[size_valid:]
         else:
             train_data = np.loadtxt('../data/'+train_data_name)
             test_data = np.loadtxt('../data/'+test_data_name)
@@ -185,19 +188,18 @@ if __name__=='__main__':
             x_test = sparse.csr_matrix(x_test)
             test_label = np.array(test_data[:,num_attributes-1])
 
-            size_train = x_train.shape[0]
-            size_valid =int(size_train*0.1)
-            x_valid = x_train[:size_valid,:]
-            valid_label = train_label[:size_valid]
-            x_train = x_train[size_valid:,:]
-            train_label = train_label[size_valid:]
+            #size_train = x_train.shape[0]
+            #size_valid =int(size_train*0.1)
+            #x_valid = x_train[:size_valid,:]
+            #valid_label = train_label[:size_valid]
+            #x_train = x_train[size_valid:,:]
+            #train_label = train_label[size_valid:]
 
         print('method:'+ method)
         print('dataset:'+train_data_name)
-        print('num_attributes:'+str(num_attributes))
         
        
-        performance_with_k(x_train,train_label,x_test,test_label,x_valid,valid_label,num_attributes,L_1,L_21,path_detail,if_pd,mini_batch)
+        performance_with_k(x_train,train_label,x_test,test_label,L_1,L_21,path_detail,if_pd,mini_batch)
         #sparsity_with_performance(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21, path_detail, if_pd)
         #performance_cross_validation(train_data_name,x_train,train_label,x_test,test_label,num_attributes,L_1,L_21,method)
        

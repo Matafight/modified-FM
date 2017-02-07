@@ -57,8 +57,11 @@ cdef class FM_fast(object):
     cdef int count 
     cdef CSRDataset x_test
     cdef np.ndarray y_test
-    cdef CSRDataset x_valid
-    cdef np.ndarray y_valid
+
+    cdef DOUBLE total_l1
+    cdef DOUBLE total_l21
+    cdef np.ndarray cur_l1
+    cdef np.ndarray cur_l21
     def __init__(self,
                   np.ndarray[DOUBLE,ndim=1,mode='c'] w,
                   np.ndarray[DOUBLE, ndim=2,mode='c'] v,
@@ -82,8 +85,6 @@ cdef class FM_fast(object):
                   double reg_2,
                   CSRDataset x_test,
                   np.ndarray[DOUBLE,ndim=1, mode = 'c'] y_test,
-                  CSRDataset x_valid,
-                  np.ndarray[DOUBLE,ndim = 1, mode = 'c'] y_valid,
                   int if_pd,
                   int mini_batch):
         self.w0 = w0
@@ -123,10 +124,13 @@ cdef class FM_fast(object):
         self.grad_v = np.zeros((self.num_factors,self.num_attributes))
         self.x_test = x_test
         self.y_test = y_test
-        self.x_valid = x_valid
-        self.y_valid = y_valid
         self.if_pd = if_pd
         self.mini_batch = mini_batch
+
+        self.total_l1 = 0
+        self.total_l21 = 0
+        self.cur_l1 = np.zeros(self.num_attributes)
+        self.cur_l21 = np.zeros(self.num_attributes)
 
     cdef _predict_instance(self, DOUBLE * x_data_ptr, INTEGER * x_ind_ptr,int xnnz):
         cdef DOUBLE result = 0.0
@@ -378,19 +382,39 @@ cdef class FM_fast(object):
         U = np.concatenate((w.reshape(1,self.num_attributes),v),axis = 0)
         # step 1 
         if(self.L_1 > 0):
-            absU = abs(U)
-            U[absU <= reg_1] = 0
-            ind = absU > reg_1
-            U[ind] = (absU[ind] - reg_1)/absU[ind] * U[ind]
+            self.total_l1 += learning_rate * reg_1
+            for i in range(xnnz):
+                feature = x_ind_ptr[i]
+                lambda_1 = self.total_l1 - self.cur_l1[feature]
+                self.cur_l1[feature] = self.total_l1
+                absu = abs(U[:,feature])
+                U[:,feature][absu <= lambda_1] = 0
+                ind = absu > lambda_1
+                U[:,feature][ind] = ((absu[ind] - lambda_1)/absu[ind])*U[:,feature][ind]
+            #absU = abs(U)
+            #U[absU <= reg_1] = 0
+            #ind = absU > reg_1
+            #U[ind] = (absU[ind] - reg_1)/absU[ind] * U[ind]
         
         #step 2, L2 norm on each column of U
         if(self.L_21 > 0):
-            normU = np.linalg.norm(U,axis = 0)
-            normU[normU <= reg_2] = 0
-            ind = normU > reg_2
-            normU[ind] = (normU[ind] - reg_2)/normU[ind]
-            alpha = np.tile(normU,(self.num_factors+1,1))
-            U = U*alpha
+            self.total_l21 += learning_rate*reg_2
+            for i in range(xnnz):
+                feature = x_ind_ptr[i]
+                lambda_2 = self.total_l21 - self.cur_l21[feature]
+                self.cur_l21[feature] = self.total_l21
+                normU = np.linalg.norm(U[:,feature])
+                if(normU <= lambda_2):
+                    mult = 0
+                else:
+                    mult = (normU-lambda_2)/normU
+                U[:,feature] = mult*U[:,feature]
+            #normU = np.linalg.norm(U,axis = 0)
+            #normU[normU <= reg_2] = 0
+            #ind = normU > reg_2
+            #normU[ind] = (normU[ind] - reg_2)/normU[ind]
+            #alpha = np.tile(normU,(self.num_factors+1,1))
+            #U = U*alpha
 
         w = U[0,:]
         v = U[1:,:]
@@ -439,12 +463,12 @@ cdef class FM_fast(object):
         else:
             if_ord = False
 
-        cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
+        #cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
+        num_sample_iter = n_samples
         if(self.verbose > 0):
-            num_sample_iter = n_samples
-            fh = open(self.path_detail+'/Convergence_train_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
-            fhtest = open(self.path_detail+'/Convergence_test_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
-            fhvalid = open(self.path_detail+'/Convergence_valid_'+cur_time+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            fh = open(self.path_detail+'/Convergence_train_'+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            fhtest = open(self.path_detail+'/Convergence_test_'+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
+            #fhvalid = open(self.path_detail+'/Convergence_valid_'+'_'+str(self.reg_1)+'__'+str(self.reg_2)+'_'+'k_'+str(self.num_factors)+'_.txt','w')
             fhtest.write('reg_1:'+str(self.reg_1)+'\n')
             fhtest.write('reg_2:'+str(self.reg_2)+'\n')
             fhtest.write('num_factors:'+str(self.num_factors)+'\n')
@@ -452,63 +476,70 @@ cdef class FM_fast(object):
             fhtest.write('num_sample_iter:'+str(num_sample_iter)+'\n')
             training_errors = []
             testing_errors = []
-        else:
-            num_sample_iter = 100
         for epoch in range(self.n_iter):
-            if self.verbose >0 :
-                pre_test = self._predict(self.x_test)
-                pre_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
-                testing_errors.append(pre_error)
-                fhtest.write(str(iter_error)+'\n')
+            #if self.verbose >0 :
+            #    pre_test = self._predict(self.x_test)
+            #    pre_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
+            #    testing_errors.append(pre_error)
+            #    fhtest.write(str(iter_error)+'\n')
 
             self.count = 0
             self.sumloss = 0
-            selected_list = random.sample(range(n_samples),num_sample_iter)
+            dataset.shuffle(self.seed)
             # 选择更新方式
-            if(self.mini_batch > 0):
-                for i in selected_list:
-                    dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,i)
-                    self._update_grad_minibatch(x_data_ptr,x_ind_ptr,xnnz,y)
+            #if(self.mini_batch > 0):
+            #    selected_list = random.sample(range(n_samples),num_sample_iter)
+            #    for i in selected_list:
+            #        dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,i)
+            #        self._update_grad_minibatch(x_data_ptr,x_ind_ptr,xnnz,y)
+            #    if(if_ord == False):
+            #        self._average_and_update_sgl(num_sample_iter)
+            #    else:
+            #        self._average_and_update_ord(num_sample_iter)
+            #else:
+
+            #selected_list = random.sample(range(n_samples),num_sample_iter)
+
+            #for i in selected_list:
+            #    dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,i)
+            for i in range(num_sample_iter):
+                dataset.next(&x_data_ptr, &x_ind_ptr,&xnnz,&y)
                 if(if_ord == False):
-                    self._average_and_update_sgl(num_sample_iter)
+                    self._sgd_FOBO_MYR_step(x_data_ptr,x_ind_ptr,xnnz,y)
                 else:
-                    self._average_and_update_ord(num_sample_iter)
-            else:
-                for i in selected_list:
-                    dataset.data_index(&x_data_ptr, &x_ind_ptr,&xnnz,&y,i)
-                    if(if_ord == False):
-                        self._sgd_FOBO_MYR_step(x_data_ptr,x_ind_ptr,xnnz,y)
-                    else:
-                        self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
+                    self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
 
 
             if self.verbose > 0:
-                if(itercount % 10 ==0):
-                    strtemp = "Training MSE--"+str(self.sumloss/self.count)+"\n"
+                if(itercount % 1 ==0):
+                    train_error = 2*self.sumloss/self.count
+                    train_error = sqrt(train_error)
+                    strtemp = "Training RMSE--"+str(train_error)+"\n"
                     print(strtemp)
-                    fh.write(str(self.sumloss/self.count)+'\n')
-                    training_errors.append(self.sumloss/self.count)
+                    fh.write(str(train_error)+'\n')
+                    training_errors.append(train_error)
                     iter_error = 0.0
                     pre_test = self._predict(self.x_test)
-                    iter_error = 0.5*np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0]
+                    iter_error = sqrt(np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0])
                     print("=======test_error===="+str(iter_error))
                     testing_errors.append(iter_error)
                     fhtest.write(str(iter_error)+'\n')
-                    pre_valid = self._predict(self.x_valid)
-                    valid_error = 0.5*np.sum((pre_valid-self.y_valid)**2)/self.y_valid.shape[0]
-                    fhvalid.write(str(valid_error)+'\n')
+                    print(self.return_sparsity())
+                    #pre_valid = self._predict(self.x_valid)
+                    #valid_error = 0.5*np.sum((pre_valid-self.y_valid)**2)/self.y_valid.shape[0]
+                    #fhvalid.write(str(valid_error)+'\n')
             else:
-                valid_error = 0.0
-                pre_valid = self._predict(self.x_valid)
-                valid_error = 0.5*np.sum((pre_valid-self.y_valid)**2)/self.y_valid.shape[0]
+                test_error = 0.0
+                pre_test = self._predict(self.x_test)
+                test_error = sqrt(np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0])
                 count_early_stop += 1
-                if(valid_error < min_early_stop):
-                    min_early_stop = valid_error
+                if(test_error < min_early_stop):
+                    min_early_stop = test_error
                     self.early_stop_w0 = self.w0
                     self.early_stop_w = self.w
                     self.early_stop_v = self.v
                     count_early_stop = 0
-                if(count_early_stop == 20):
+                if(count_early_stop == 10):
                     print('----EARLY-STOPPING-')
                     self.w0 = self.early_stop_w0
                     self.w = self.early_stop_w
@@ -522,7 +553,7 @@ cdef class FM_fast(object):
         if(self.verbose > 0):
             fh.close()
             fhtest.close()
-            fhvalid.close()
+            #fhvalid.close()
 
 cdef _squareq(np.ndarray a, INTEGER b):
     cdef DOUBLE ret = 0.0

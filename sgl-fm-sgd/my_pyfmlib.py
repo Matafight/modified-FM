@@ -60,7 +60,7 @@ class FM:
             return 0
 
 
-    def fit(self,X,y,x_test,y_test,x_valid,y_valid,num_attributes):
+    def fit(self,X,y,x_test,y_test):
         if type(y)!= np.ndarray:
             y = np.array(y)
         self.max_target = max(y)
@@ -71,10 +71,9 @@ class FM:
         L_21 = self._bool_to_int(self.L_21)
         if_pd = self._bool_to_int(self.if_pd)
         mini_batch = self._bool_to_int(self.mini_batch)
-        self.num_attribute = num_attributes
+        self.num_attribute = X.shape[1]
         X_train_dataset = _make_dataset(X,y)
         x_test_data = _make_dataset(x_test,y_test)
-        x_valid_data = _make_dataset(x_valid,y_valid)
         #setup params
         self.w0 = 0.0
         self.w = np.zeros(self.num_attribute)
@@ -103,8 +102,6 @@ class FM:
                                    self.reg_2,
                                    x_test_data,
                                    y_test,
-                                   x_valid_data,
-                                   y_valid,
                                    if_pd,
                                    mini_batch)
         self.fm_fast.fit(X_train_dataset)

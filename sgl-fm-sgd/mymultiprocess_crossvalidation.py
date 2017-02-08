@@ -63,6 +63,6 @@ class cross_val_regularization:
                 fm = pylibfm.FM(num_factors = self.numfactors,num_iter=200,verbose = False,L_1 = self.L_1,L_21=self.L_21,task="regression",initial_learning_rate=0.001,path_detail=self.path_detail,reg_1 = self.reg_set_1[reg_1_cro], reg_2 = self.reg_set_2[reg_2_cro],if_pd = self.if_pd, mini_batch = self.mini_batch)
                 fm.fit(x_train,y_train,x_test,y_test,self.num_attributes)
                 pre_label = fm.predict(x_test,y_test)
-                diff = np.sqrt(np.sum((pre_label-y_test)**2)/y_test.size)
+                diff = sqrt(np.sqrt(np.sum((pre_label-y_test)**2)/y_test.size))
                 self.reg_ret[reg_1_cro,reg_2_cro] = self.reg_ret[reg_1_cro,reg_2_cro] + diff
         print('----complete---'+str(seq)+'---subthread') 

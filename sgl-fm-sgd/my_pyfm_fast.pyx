@@ -378,7 +378,7 @@ cdef class FM_fast(object):
                 feature = x_ind_ptr[i]
                 grad_v[f,feature] = mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature]) 
                 v[f,feature] -= learning_rate*(grad_v[f,feature])
-                
+        # combining two array is very time consuming       
         U = np.concatenate((w.reshape(1,self.num_attributes),v),axis = 0)
         # step 1 
         if(self.L_1 > 0):
@@ -474,8 +474,6 @@ cdef class FM_fast(object):
             fhtest.write('num_factors:'+str(self.num_factors)+'\n')
             fhtest.write('init_learning_rate:'+str(self.init_learning_rate)+'\n')
             fhtest.write('num_sample_iter:'+str(num_sample_iter)+'\n')
-            training_errors = []
-            testing_errors = []
         for epoch in range(self.n_iter):
             #if self.verbose >0 :
             #    pre_test = self._predict(self.x_test)
@@ -517,38 +515,30 @@ cdef class FM_fast(object):
                     strtemp = "Training RMSE--"+str(train_error)+"\n"
                     print(strtemp)
                     fh.write(str(train_error)+'\n')
-                    training_errors.append(train_error)
                     iter_error = 0.0
                     pre_test = self._predict(self.x_test)
                     iter_error = sqrt(np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0])
                     print("=======test_error===="+str(iter_error))
-                    testing_errors.append(iter_error)
                     fhtest.write(str(iter_error)+'\n')
                     print(self.return_sparsity())
-                    #pre_valid = self._predict(self.x_valid)
-                    #valid_error = 0.5*np.sum((pre_valid-self.y_valid)**2)/self.y_valid.shape[0]
-                    #fhvalid.write(str(valid_error)+'\n')
-            else:
-                test_error = 0.0
-                pre_test = self._predict(self.x_test)
-                test_error = sqrt(np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0])
-                print(test_error)
-                count_early_stop += 1
-                if(test_error < min_early_stop):
-                    min_early_stop = test_error
-                    self.early_stop_w0 = copy.deepcopy(self.w0)
-                    self.early_stop_w = copy.deepcopy(self.w)
-                    self.early_stop_v = copy.deepcopy(self.v)
-                    count_early_stop = 0
-                if(count_early_stop == 10):
-                    print('----EARLY-STOPPING-')
-                    print(min_early_stop)
-                    self.w0 = copy.deepcopy(self.early_stop_w0)
-                    self.w = copy.deepcopy(self.early_stop_w)
-                    self.v = copy.deepcopy(self.early_stop_v)
-                    break
-                print(epoch)
-            itercount +=1
+                #else:
+                    test_error = iter_error
+                    #pre_test = self._predict(self.x_test)
+                    #test_error = sqrt(np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0])
+                    count_early_stop += 1
+                    if(test_error < min_early_stop):
+                        min_early_stop = test_error
+                        self.early_stop_w0 = copy.deepcopy(self.w0)
+                        self.early_stop_w = copy.deepcopy(self.w)
+                        self.early_stop_v = copy.deepcopy(self.v)
+                        count_early_stop = 0
+                    if(count_early_stop == 10):
+                        print('----EARLY-STOPPING-')
+                        self.w0 = copy.deepcopy(self.early_stop_w0)
+                        self.w = copy.deepcopy(self.early_stop_w)
+                        self.v = copy.deepcopy(self.early_stop_v)
+                        break
+                itercount +=1
         if(self.verbose <= 0 ):
             self.w0 = copy.deepcopy(self.early_stop_w0)
             self.w = copy.deepcopy(self.early_stop_w)

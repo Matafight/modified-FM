@@ -27,8 +27,10 @@ def performance_with_k(x_train,y_train,x_test,y_test,L_1,L_21,path_detail,if_pd,
     file_varing_k = open(path_detail + '/performance_varying_k.txt','a')
     file_varing_k.write(cur_time+'\n\n')
     #reg_set = [0.0000001,0.000001,0.00001,0.0001]
-    reg_set1 = [0.00001,0.00002,0.00003,0.00004,0.00005,0.00006,0.00007,0.00008,0.00009]
-    reg_set2 = [0.000001,0.000002,0.000003,0.000004,0.000005,0.000006,0.000007,0.000008,0.000009]
+    #reg_set1 = [0.00001,0.00002,0.00003,0.00004,0.00005,0.00006,0.00007,0.00008,0.00009]
+    #reg_set2 = [0.000001,0.000002,0.000003,0.000004,0.000005,0.000006,0.000007,0.000008,0.000009]
+    reg_set1 = [0.000001,0.0001,0.001,0.01]
+    reg_set2 = [0.000001,0.0001,0.001,0.01]
     for reg_1 in reg_set1:
         for reg_2 in reg_set2:
             for num_factors in candidate_k:
@@ -44,10 +46,10 @@ def performance_with_k(x_train,y_train,x_test,y_test,L_1,L_21,path_detail,if_pd,
                 file_varing_k.write('reg_2:'+str(reg_2)+'\n')
                 file_varing_k.write('k:'+str(num_factors)+'\n')
                 print('crossvalidation finished---')
-                fm = pylibfm.FM(num_factors = num_factors,num_iter = 300,verbose = True,L_1 = L_1,L_21 = L_21,task = 'regression',initial_learning_rate=0.001,path_detail = path_detail,reg_1 = reg_1,reg_2 = reg_2,if_pd = if_pd,mini_batch = mini_batch)
+                fm = pylibfm.FM(num_factors = num_factors,num_iter = 100,verbose = True,L_1 = L_1,L_21 = L_21,task = 'regression',initial_learning_rate=0.001,path_detail = path_detail,reg_1 = reg_1,reg_2 = reg_2,if_pd = if_pd,mini_batch = mini_batch)
                 fm.fit(x_train,y_train,x_test,y_test)
                 pre_label = fm.predict(x_test,y_test)
-                diff = np.sum((pre_label-y_test)**2)/y_test.size
+                diff = np.sqrt(np.sum((pre_label-y_test)**2)/y_test.size)
                 file_varing_k.write(str(diff)+'\n')
     file_varing_k.close()
 

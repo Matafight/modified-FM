@@ -8,7 +8,7 @@ import random
 cimport numpy as np
 cimport cython
 import matplotlib.pyplot as plt
-
+import copy
 np.import_array()
 
 ctypedef np.float64_t DOUBLE
@@ -532,24 +532,27 @@ cdef class FM_fast(object):
                 test_error = 0.0
                 pre_test = self._predict(self.x_test)
                 test_error = sqrt(np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0])
+                print(test_error)
                 count_early_stop += 1
                 if(test_error < min_early_stop):
                     min_early_stop = test_error
-                    self.early_stop_w0 = self.w0
-                    self.early_stop_w = self.w
-                    self.early_stop_v = self.v
+                    self.early_stop_w0 = copy.deepcopy(self.w0)
+                    self.early_stop_w = copy.deepcopy(self.w)
+                    self.early_stop_v = copy.deepcopy(self.v)
                     count_early_stop = 0
                 if(count_early_stop == 10):
                     print('----EARLY-STOPPING-')
-                    self.w0 = self.early_stop_w0
-                    self.w = self.early_stop_w
-                    self.v = self.early_stop_v
+                    print(min_early_stop)
+                    self.w0 = copy.deepcopy(self.early_stop_w0)
+                    self.w = copy.deepcopy(self.early_stop_w)
+                    self.v = copy.deepcopy(self.early_stop_v)
                     break
+                print(epoch)
             itercount +=1
         if(self.verbose <= 0 ):
-            self.w0 = self.early_stop_w0
-            self.w = self.early_stop_w
-            self.v = self.early_stop_v
+            self.w0 = copy.deepcopy(self.early_stop_w0)
+            self.w = copy.deepcopy(self.early_stop_w)
+            self.v = copy.deepcopy(self.early_stop_v)
         if(self.verbose > 0):
             fh.close()
             fhtest.close()

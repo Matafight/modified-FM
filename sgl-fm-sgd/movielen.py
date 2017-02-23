@@ -20,26 +20,43 @@ def loadData(filename):
             users.add(user)
             items.add(movieid)
     return (data,np.array(y),users,items)
-
+def loadData_lastfm(filename):
+    data=[]
+    y = []
+    artistes=set()
+    tags_all=set()
+    with open(filename) as f:
+        for line in f:
+            (artist,tags,tags_count)=line.split('\t')
+            data.append({"artist_id":str(artist),"tags_id":str(tags)})
+            y.append(float(tags_count))
+            artistes.add(artist)
+            tags_all.add(tags)
+    return (data,np.array(y),artistes,tags_all)
 def performance_with_k(x_train,y_train,x_test,y_test,L_1,L_21,path_detail,if_pd,mini_batch):
-    candidate_k = [10]
+    candidate_k = [100]
     cur_time = time.strftime('%m-%d-%H-%M',time.localtime(time.time()))
     file_varing_k = open(path_detail + '/performance_varying_k.txt','a')
     file_varing_k.write(cur_time+'\n\n')
 
     if(L_1 and L_21):
-        reg_set1 = [0.00001,0.00003,0.00005,0.00007,0.00009]
-        reg_set2 = [0.000001,0.000003,0.000005,0.000007,0.000009]
+        #reg_set1 = [0.00001,0.00003,0.00005,0.00007,0.00009]
+        #reg_set2 = [0.000001,0.000003,0.000005,0.000007,0.000009]
+        #reg_set1 = [0.000005]
+        #reg_set2 = [0.0001]
+        reg_set1 = [0.00001]
+        reg_set2 = [0.00001]
     elif(L_1):
 
-        reg_set1 = [0.00001,0.00003,0.00005,0.00007,0.00009]
+        reg_set1 = [0.00001]
         reg_set2 = [0.1]
     elif(L_21):
         reg_set1 = [0.1]
-        reg_set2 = [0.000001,0.000003,0.000005,0.000007,0.000009]
+        reg_set2 = [0.00001]
+       
     else:
-        reg_set1 = [0.0001,0.0001,0.001,0.01,0.1,1]
-        reg_set2 = [0.0001,0.0001,0.001,0.01,0.1,1]
+        reg_set1 = [0.1]
+        reg_set2 = [0.1]
 
     for reg_1 in reg_set1:
         for reg_2 in reg_set2:
@@ -55,8 +72,11 @@ def performance_with_k(x_train,y_train,x_test,y_test,L_1,L_21,path_detail,if_pd,
                 file_varing_k.write('reg_1:'+str(reg_1)+'\n')
                 file_varing_k.write('reg_2:'+str(reg_2)+'\n')
                 file_varing_k.write('k:'+str(num_factors)+'\n')
+                if(not os.path.isdir(path_detail+'/k='+str(num_factors))):
+                    os.mkdir(path_detail+'/k='+str(num_factors))
+                new_path_detail = path_detail +'/k='+str(num_factors)
                 print('crossvalidation finished---')
-                fm = pylibfm.FM(num_factors = num_factors,num_iter = 200,verbose = True,L_1 = L_1,L_21 = L_21,task = 'regression',initial_learning_rate=0.001,path_detail = path_detail,reg_1 = reg_1,reg_2 = reg_2,if_pd = if_pd,mini_batch = mini_batch)
+                fm = pylibfm.FM(num_factors = num_factors,num_iter = 300,verbose = True,L_1 = L_1,L_21 = L_21,task = 'regression',initial_learning_rate=0.001,path_detail = new_path_detail,reg_1 = reg_1,reg_2 = reg_2,if_pd = if_pd,mini_batch = mini_batch)
                 fm.fit(x_train,y_train,x_test,y_test)
                 pre_label = fm.predict(x_test,y_test)
                 diff = np.sqrt(np.sum((pre_label-y_test)**2)/y_test.size)
@@ -124,11 +144,18 @@ if __name__=='__main__':
         training_names = ['train_Genedata.0','train_Genedata.1','train_Genedata.2','train_Genedata.4','train_Genedata.4']
         testing_names = ['test_Genedata.0','test_Genedata.1','test_Genedata.2','test_Genedata.3','test_Genedata.4']
     elif(sdn in 'u2.base'):
-        training_names=['u3.base','u4.base','u5.base']
-        testing_names=['u3.test','u4.test','u5.base']
+        #training_names=['u1.base','u2.base','u3.base','u4.base','u5.base']
+        #testing_names=['u1.test','u2.test','u3.test','u4.test','u5.test']
+        training_names=['u1.base']
+        testing_names=['u1.test']
     elif(sdn in 'ml-1m-train'):
-        training_names = ['ml-1m-train-0.txt','ml-1m-train-1.txt','ml-1m-train-2.txt','ml-1m-train-3.txt','ml-1m-train-4.txt']
-        testing_names = ['ml-1m-test-0.txt','ml-1m-test-1.txt','ml-1m-test-2.txt','ml-1m-test-3.txt','ml-1m-test-4.txt']
+        #training_names = ['ml-1m-train-0.txt','ml-1m-train-1.txt','ml-1m-train-2.txt','ml-1m-train-3.txt','ml-1m-train-4.txt']
+        #testing_names = ['ml-1m-test-0.txt','ml-1m-test-1.txt','ml-1m-test-2.txt','ml-1m-test-3.txt','ml-1m-test-4.txt']
+        training_names = ['ml-1m-train-0.txt']
+        testing_names=['ml-1m-test-0.txt']
+    elif(sdn in 'lastfm_testing.txt'):
+        training_names = ['lastfm_training.txt']
+        testing_names = ['lastfm_testing.txt']
     else:
         #raise error here
         print('The data has not found!!!!!!!!!')
@@ -189,6 +216,12 @@ if __name__=='__main__':
             #valid_label = train_label[:size_valid]
             #x_train = x_train[size_valid:,:]
             #train_label = train_label[size_valid:]
+        elif('lastfm' in train_data_name):
+            (train_data,train_label,train_artistes,train_tags_all) = loadData_lastfm('../data/'+train_data_name)
+            (test_data,test_label,test_artistes,test_tags_all) = loadData_lastfm('../data/'+test_data_name)
+            v = DictVectorizer()
+            x_train=v.fit_transform(train_data)
+            x_test = v.transform(test_data)
         else:
             train_data = np.loadtxt('../data/'+train_data_name)
             test_data = np.loadtxt('../data/'+test_data_name)

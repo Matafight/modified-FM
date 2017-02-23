@@ -343,6 +343,7 @@ cdef class FM_fast(object):
         self.v = v
         self.t += 1
         self.count +=1
+
     #using another optimization technology: FOBO and  Moreau-Yosida Regularization method to update the parameter
     cdef _sgd_FOBO_MYR_step(self,DOUBLE * x_data_ptr, INTEGER * x_ind_ptr, int xnnz, DOUBLE y):
         cdef DOUBLE w0 = self.w0
@@ -379,7 +380,7 @@ cdef class FM_fast(object):
                 grad_v[f,feature] = mult*x_data_ptr[i]*(self.sum_[f]-x_data_ptr[i]*v[f,feature]) 
                 v[f,feature] -= learning_rate*(grad_v[f,feature])
         # combining two array is very time consuming       
-        U = np.concatenate((w.reshape(1,self.num_attributes),v),axis = 0)
+        #U = np.concatenate((w.reshape(1,self.num_attributes),v),axis = 0)
         # step 1 
         if(self.L_1 > 0):
             self.total_l1 += learning_rate * reg_1
@@ -387,10 +388,17 @@ cdef class FM_fast(object):
                 feature = x_ind_ptr[i]
                 lambda_1 = self.total_l1 - self.cur_l1[feature]
                 self.cur_l1[feature] = self.total_l1
-                absu = abs(U[:,feature])
-                U[:,feature][absu <= lambda_1] = 0
-                ind = absu > lambda_1
-                U[:,feature][ind] = ((absu[ind] - lambda_1)/absu[ind])*U[:,feature][ind]
+                comb  = np.append(w[feature],v[:,feature])
+                abscomb = abs(comb)
+                comb[abscomb <= lambda_1] = 0
+                ind = abscomb > lambda_1
+                comb[ind] = ((abscomb[ind]-lambda_1)/abscomb[ind])*comb[ind]
+                w[feature] = comb[0]
+                v[:,feature] = comb[1:]
+                #absu = abs(U[:,feature])
+                #U[:,feature][absu <= lambda_1] = 0
+                #ind = absu > lambda_1
+                #U[:,feature][ind] = ((absu[ind] - lambda_1)/absu[ind])*U[:,feature][ind]
             #absU = abs(U)
             #U[absU <= reg_1] = 0
             #ind = absU > reg_1
@@ -403,12 +411,21 @@ cdef class FM_fast(object):
                 feature = x_ind_ptr[i]
                 lambda_2 = self.total_l21 - self.cur_l21[feature]
                 self.cur_l21[feature] = self.total_l21
-                normU = np.linalg.norm(U[:,feature])
-                if(normU <= lambda_2):
+                comb  = np.append(w[feature],v[:,feature])
+                norm_comb = np.linalg.norm(comb)
+                if(norm_comb < lambda_2):
                     mult = 0
                 else:
-                    mult = (normU-lambda_2)/normU
-                U[:,feature] = mult*U[:,feature]
+                    mult = (norm_comb-lambda_2)/norm_comb
+                comb = mult*comb
+                w[feature] = comb[0]
+                v[:,feature] = comb[1:]
+                #normU = np.linalg.norm(U[:,feature])
+                #if(normU <= lambda_2):
+                #    mult = 0
+                #else:
+                #    mult = (normU-lambda_2)/normU
+                #U[:,feature] = mult*U[:,feature]
             #normU = np.linalg.norm(U,axis = 0)
             #normU[normU <= reg_2] = 0
             #ind = normU > reg_2
@@ -416,8 +433,8 @@ cdef class FM_fast(object):
             #alpha = np.tile(normU,(self.num_factors+1,1))
             #U = U*alpha
 
-        w = U[0,:]
-        v = U[1:,:]
+        #w = U[0,:]
+        #v = U[1:,:]
 
         self.learning_rate = learning_rate
         self.w0 = w0
@@ -437,7 +454,7 @@ cdef class FM_fast(object):
         zeros_ind_total = U==0
         total = (self.num_factors+1)*self.num_attributes
         per_total = np.sum(zeros_ind_total)/float(total)
-        per_w = np.sum(w==0)/self.num_attributes
+        per_w = np.sum(w==0)/float(self.num_attributes)
         return per_w,per_total
         
         
@@ -457,6 +474,8 @@ cdef class FM_fast(object):
         cdef DOUBLE sample_weight = 1.0
         cdef DOUBLE min_early_stop = sys.maxint
         cdef unsigned int count_early_stop = 0
+
+        cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] U
         #judge if ord or sgl is used
         if(self.L_1 <= 0 and self.L_21 <= 0):
             if_ord = True
@@ -520,11 +539,17 @@ cdef class FM_fast(object):
                     iter_error = sqrt(np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0])
                     print("=======test_error===="+str(iter_error))
                     fhtest.write(str(iter_error)+'\n')
-                    print(self.return_sparsity())
-                #else:
+                    fhtest.write('sparsity:')
+                    sparsity = self.return_sparsity()
+                    print(sparsity)
+                    fhtest.write(str(sparsity)+'\n')
                     test_error = iter_error
-                    #pre_test = self._predict(self.x_test)
-                    #test_error = sqrt(np.sum((pre_test-self.y_test)**2)/self.y_test.shape[0])
+                    if(epoch == 64):
+                        print("ok ma?")
+                        U = np.concatenate((np.reshape(self.w,(1,self.num_attributes)),self.v),axis = 0)
+                        np.savetxt('test_attributes.txt',U,fmt = '%f',delimiter=' ')
+                        break;
+                        
                     count_early_stop += 1
                     if(test_error < min_early_stop):
                         min_early_stop = test_error
@@ -532,7 +557,7 @@ cdef class FM_fast(object):
                         self.early_stop_w = copy.deepcopy(self.w)
                         self.early_stop_v = copy.deepcopy(self.v)
                         count_early_stop = 0
-                    if(count_early_stop == 10):
+                    if(count_early_stop == 10 or sparsity[1] > 0.3):
                         print('----EARLY-STOPPING-')
                         self.w0 = copy.deepcopy(self.early_stop_w0)
                         self.w = copy.deepcopy(self.early_stop_w)

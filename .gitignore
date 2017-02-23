@@ -6,3 +6,7 @@ results/
 data/
 .idea/
 movielen.py
+results_summary.txt
+lasso
+second-order
+analysis_resutls.py

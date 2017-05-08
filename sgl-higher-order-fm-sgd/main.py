@@ -25,13 +25,10 @@ if __name__=='__main__':
     (test_data,test_label,test_users,test_items)=loadData('../data/'+test_data_name)
     v = DictVectorizer()
     x_train=v.fit_transform(train_data)
-    x_test = v.fit_transform(test_data)
+    x_test = v.transform(test_data)
 
     num_attributes = x_train.shape[1]
     num_factors = 10
 
-    #cv = my_cv.cross_val_regularization(x_train,train_label,num_factors = num_factors,num_attributes = num_attributes)
-    #bestreg = cv.sele_para()
-    #reg_1 = 0.001, reg_2 = 0.001
     myfm = FM(verbose = True,n_iter = 200,num_factors=num_factors,num_attributes = num_attributes,dataname = train_data_name, reg_1=200,reg_2=200,gamma = 1)
     myfm.fit(x_train,train_label,x_test,test_label)

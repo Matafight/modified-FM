@@ -294,13 +294,14 @@ class FM():
                 self._sgd_theta_step(train_data[item,:],train_y[item])
             training_errors.append(self.sum_loss/self.count)
             print(str(self.sum_loss/self.count))
+            print("hello!")
             if(self.verbose==True and itercount%10==0):
                 pre_y = self._predict(test_data)
                 test_error = 0.5*np.sum((pre_y-test_y)**2)/test_y.shape[0]
                 testing_errors.append(test_error)
             itercount +=1
         if self.verbose == True:
-            draw_line(training_errors,testing_errors,self.dataname)
+            #draw_line(training_errors,testing_errors,self.dataname)
             np.savetxt(train_ret_name,np.array(training_errors),fmt = '%10.5f')
             np.savetxt(test_ret_name,np.array(testing_errors),fmt = '%10.5f')
 

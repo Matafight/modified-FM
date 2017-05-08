@@ -226,7 +226,7 @@ class FM():
     #no validation data yet
     def fit(self,train_data, train_y, test_data,test_y):
 
-        n_samples = train_data.shape[1]
+        n_samples = train_data.shape[0]
         itercount = 0
         training_errors = []
         testing_errors = []
@@ -239,18 +239,24 @@ class FM():
             self.sum_loss = 0.0
             self.count = 0
             n_sample_sele = 10
-            selected_list = random.sample(range(n_samples),n_sample_sele)
 
-            for item in selected_list:
+            my_shuffle = np.random.permutation(n_samples)  
+            #selected_list = random.sample(range(n_samples),n_sample_sele)
+
+            #for item in selected_list:
+            #    self._sgd_theta_step(train_data[item,:],train_y[item])
+            for item in my_shuffle:
                 self._sgd_theta_step(train_data[item,:],train_y[item])
-            training_errors.append(self.sum_loss/self.count)
+            training_errors.append(np.sqrt(self.sum_loss/self.count))
+            print(np.sqrt(self.sum_loss/self.count))
             if(self.verbose==True and itercount%10==0):
                 pre_y = self._predict(test_data)
-                test_error = 0.5*np.sum((pre_y-test_y)**2)/test_y.shape[0]
+                test_error = np.sqrt(np.sum((pre_y-test_y)**2)/test_y.shape[0])
                 testing_errors.append(test_error)
+                print('testing error %f'%test_error)
             itercount +=1
         if self.verbose == True:
-            draw_line(training_errors,testing_errors,self.dataname)
+            #draw_line(training_errors,testing_errors,self.dataname)
             np.savetxt(train_ret_name,np.array(training_errors),fmt = '%10.5f')
             np.savetxt(test_ret_name,np.array(testing_errors),fmt = '%10.5f')
 
@@ -267,4 +273,4 @@ def draw_line(training_errors,testing_errors,dataname):
 
 
 def _squared_loss(a,b):
-    return 0.5*(a-b)*(a-b)
+    return (a-b)*(a-b)

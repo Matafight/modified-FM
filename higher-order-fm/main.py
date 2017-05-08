@@ -19,20 +19,23 @@ def loadData(filename):
     return (data,np.array(y),users,items)
 
 if __name__=='__main__':
-    train_data_name = 'u2.base'
-    test_data_name = 'u2.test'
+    train_data_name = 'u1.base'
+    test_data_name = 'u1.test'
     (train_data,train_label,train_users,train_items)= loadData('../data/'+train_data_name)
     (test_data,test_label,test_users,test_items)=loadData('../data/'+test_data_name)
+    
+    train_size=  len(train_data)
+    all_data = train_data + test_data
     v = DictVectorizer()
-    x_train=v.fit_transform(train_data)
-    x_test = v.fit_transform(test_data)
+    all_data_vec = v.fit_transform(all_data)
+    x_train = all_data_vec[0:train_size]
+    x_test = all_data_vec[train_size:]
+#    x_train=v.fit_transform(train_data)
+#    x_test = v.transform(test_data)
 
     num_attributes = x_train.shape[1]
     num_factors = 10
 
-    #cv = my_cv.cross_val_regularization(x_train,train_label,num_factors = num_factors,num_attributes = num_attributes)
-    #bestreg = cv.sele_para()
-    #reg_1 = 0.001, reg_2 = 0.001
-    bestreg = [0.001,0.001]
+    bestreg = [0.01,0.01]
     myfm = FM(verbose = True,n_iter = 200,num_factors=num_factors,num_attributes = num_attributes,dataname = train_data_name, reg_1=bestreg[0],reg_2=bestreg[0])
     myfm.fit(x_train,train_label,x_test,test_label)

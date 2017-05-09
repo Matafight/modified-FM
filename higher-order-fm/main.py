@@ -28,14 +28,23 @@ if __name__=='__main__':
     all_data = train_data + test_data
     v = DictVectorizer()
     all_data_vec = v.fit_transform(all_data)
+    
+#    x_train = all_data_vec[0:2000]
+#    x_test = all_data_vec[2000:3000]
+#    all_label = np.concatenate([train_label,test_label])
+#    n_train_label = all_label[0:2000]
+#    n_test_label = all_label[2000:3000]
+
     x_train = all_data_vec[0:train_size]
     x_test = all_data_vec[train_size:]
-#    x_train=v.fit_transform(train_data)
-#    x_test = v.transform(test_data)
-
+    #all_label = np.concatenate([train_label,test_label])
+    #n_train_label = all_label[0:2000]
+    #n_test_label = all_label[2000:3000]
+    
+    
     num_attributes = x_train.shape[1]
     num_factors = 10
 
-    bestreg = [0.01,0.01]
+    bestreg = [0.1,0.1]
     myfm = FM(verbose = True,n_iter = 200,num_factors=num_factors,num_attributes = num_attributes,dataname = train_data_name, reg_1=bestreg[0],reg_2=bestreg[0])
     myfm.fit(x_train,train_label,x_test,test_label)

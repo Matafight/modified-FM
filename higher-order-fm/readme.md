@@ -4,6 +4,7 @@
 1. **higher_fm.py**
 
    the python version of "higher order factorization machine" using sgd.
+   Currently, we support adam, adadelta and RMSprop algorithm. I introduced the several algorithms here http://matafight.github.io/2017/01/25/%E9%9A%8F%E6%9C%BA%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/
 
 2. **higher_fm_cython.pyx**
 

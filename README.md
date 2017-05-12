@@ -8,7 +8,7 @@
  - [sgl-fm-sgd](https://github.com/Matafight/modified-FM/tree/dev/sgl-fm-sgd)
     There are four kinds of FM in this sub directory,including sparse group lasso based FM , L21 based FM ,L1 based FM and the square of L2 norm based FM.
  - [sgl-higher-order-fm-sgd](https://github.com/Matafight/modified-FM/tree/dev/sgl-higher-order-fm-sgd)
-    Implement the higher order factorization machine with sparse group lasso regularization(not tested yet)
+    Implement the higher order factorization machine with sparse group lasso regularization(some bugs to be fixed)
     
 ## Reference
  1. Rendle S. Factorization machines[C]//Data Mining (ICDM), 2010 IEEE 10th International Conference on. IEEE, 2010: 995-1000.

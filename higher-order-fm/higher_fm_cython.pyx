@@ -8,6 +8,7 @@ from tqdm import tqdm
 ctypedef np.float64_t DOUBLE
 ctypedef np.int32_t INTEGER
 
+
 cdef class FM:
     cdef double w0
     cdef np.ndarray w
@@ -46,10 +47,12 @@ cdef class FM:
     #only for adam
     cdef np.ndarray adam_grad_w 
     cdef np.ndarray adam_grad_v_p 
+    cdef np.ndarray adam_grad_v_q 
 
     cdef int count
     cdef int n_iter
     cdef str method
+    cdef str path
     cdef CSRDataset x_test
     cdef np.ndarray y_test
     def __init__(self,
@@ -63,6 +66,7 @@ cdef class FM:
                  double reg_2,
                  double learning_rate,
                  str method,
+                 str path,
                  CSRDataset x_test,
                  np.ndarray[DOUBLE,ndim = 1,mode = 'c'] y_test):
         self.num_order = num_order
@@ -110,8 +114,10 @@ cdef class FM:
         # use the prev_grad_w,prev_grad_v_p
         self.adam_grad_w = np.zeros(self.num_attributes)
         self.adam_grad_v_p = np.zeros((self.num_attributes+1,self.num_factors+1))
+        self.adam_grad_v_q = np.zeros((self.num_attributes+1,self.num_factors+1))
 
         self.method = method
+        self.path = path
         self.count = 0
         self.x_test = x_test
         self.y_test = y_test
@@ -146,17 +152,18 @@ cdef class FM:
             self.DP_table_sec[i,:,:] = DPT
             result += DPT[2,self.num_attributes]
         #third order
-        '''for i in range(self.num_factors):
-            DPT = self.DP_table_thi[i,:,:]
-            for t in range(1,3+1):
-                lastnnz = 0
-                for k in range(xnnz):
-                    feature = x_ind_ptr[k] + 1
-                    DPT[t,lastnnz+1:feature] = DPT[t,lastnnz]
-                    DPT[t,feature] = DPT[t,feature-1] + v_q[feature,i]*x_data_ptr[k]
-                    lastnnz = feature
-            self.DP_table_thi[i,:,:] = DPT
-            result += DPT[3,self.num_attributes]'''
+        if self.num_order == 3:
+            for i in range(self.num_factors):
+                DPT = self.DP_table_thi[i,:,:]
+                for t in range(1,3+1):
+                    lastnnz = 0
+                    for k in range(xnnz):
+                        feature = x_ind_ptr[k] + 1
+                        DPT[t,lastnnz+1:feature] = DPT[t,lastnnz]
+                        DPT[t,feature] = DPT[t,feature-1] + v_q[feature,i]*x_data_ptr[k]
+                        lastnnz = feature
+                self.DP_table_thi[i,:,:] = DPT
+                result += DPT[3,self.num_attributes]
 
         return result
 
@@ -177,22 +184,24 @@ cdef class FM:
         return return_preds
 
     cdef _grad_DP(self,DOUBLE *x_data_ptr,INTEGER *x_ind_ptr,int xnnz):
+
         cdef int d = self.num_attributes
         cdef int num_factors = self.num_factors
         cdef np.ndarray[DOUBLE,ndim =3,mode ='c'] DP_table_sec= self.DP_table_sec
-        #cdef np.ndarray[DOUBLE,ndim =3,mode ='c'] DP_table_thi= self.DP_table_thi
-
         cdef np.ndarray[DOUBLE,ndim =2,mode = 'c'] grad_v_p = np.zeros((self.num_attributes+1,self.num_factors+1))
-        #cdef np.ndarray[DOUBLE,ndim =2,mode = 'c'] grad_v_q = np.zeros((self.num_attributes+1,self.num_factors+1))
-        
         cdef np.ndarray[DOUBLE,ndim =3,mode = 'c'] grad_DP_table_sec = np.zeros((self.num_factors,2+1,self.num_attributes+1))
-        #cdef np.ndarray[DOUBLE,ndim =3,mode = 'c'] grad_DP_table_thi = np.zeros((self.num_factors,3+1,self.num_attributes+1))
-        
-        grad_DP_table_sec[:,2,self.num_attributes] = 1
-        #grad_DP_table_thi[:,3,self.num_attributes] = 1
-
         cdef np.ndarray[DOUBLE,ndim =2,mode = 'c'] v_p = self.v_p
-        #cdef np.ndarray[DOUBLE,ndim =2,mode = 'c'] v_q = self.v_q
+        grad_DP_table_sec[:,2,self.num_attributes] = 1
+
+       
+        cdef np.ndarray[DOUBLE,ndim =3,mode ='c'] DP_table_thi= self.DP_table_thi 
+        cdef np.ndarray[DOUBLE,ndim =2,mode = 'c'] grad_v_q = np.zeros((self.num_attributes+1,self.num_factors+1))
+        cdef np.ndarray[DOUBLE,ndim =3,mode = 'c'] grad_DP_table_thi = np.zeros((self.num_factors,3+1,self.num_attributes+1))
+        cdef np.ndarray[DOUBLE,ndim =2,mode = 'c'] v_q = self.v_q
+        grad_DP_table_thi[:,3,self.num_attributes] = 1
+
+        
+        
         cdef int feature
         cdef int lastnnz = d
         cdef int i = 0
@@ -224,33 +233,34 @@ cdef class FM:
                     grad_v_p[feature,i] += grad_DP_table_sec[i,t,feature] *DP_table_sec[i,t-1,feature-1]*x_data_ptr[k]
         
         #third order
-        '''for i in range(self.num_factors):
-            for t in range(3,0,-1):
-                lastnnz = d
-                if(t == 3):
-                    grad_DP_table_thi[i,t,t:d] = 1
-                    continue
-                for k in range(xnnz-1,-1,-1):
-                    feature = x_ind_ptr[k] + 1
-                    if(feature >= t):
-                        if(feature == d):
-                            continue
-                        grad_DP_table_thi[i,t,feature:lastnnz] = 0
-                        grad_DP_table_thi[i,t,feature:lastnnz] = grad_DP_table_thi[i,t,lastnnz]
-                        grad_DP_table_thi[i,t,feature-1]=grad_DP_table_thi[i,t+1,feature]*v_q[feature,i]*x_data_ptr[k]
-                        grad_DP_table_thi[i,t,feature-1] += grad_DP_table_thi[i,t,feature]
-                        lastnnz = feature-1
-                grad_DP_table_thi[i,t,t:lastnnz] = grad_DP_table_thi[i,t,lastnnz]
+        if self.num_order == 3:
+            for i in range(self.num_factors):
+                for t in range(3,0,-1):
+                    lastnnz = d
+                    if(t == 3):
+                        grad_DP_table_thi[i,t,t:d] = 1
+                        continue
+                    for k in range(xnnz-1,-1,-1):
+                        feature = x_ind_ptr[k] + 1
+                        if(feature >= t):
+                            if(feature == d):
+                                continue
+                            grad_DP_table_thi[i,t,feature:lastnnz] = 0
+                            grad_DP_table_thi[i,t,feature:lastnnz] = grad_DP_table_thi[i,t,lastnnz]
+                            grad_DP_table_thi[i,t,feature-1]=grad_DP_table_thi[i,t+1,feature]*v_q[feature,i]*x_data_ptr[k]
+                            grad_DP_table_thi[i,t,feature-1] += grad_DP_table_thi[i,t,feature]
+                            lastnnz = feature-1
+                    grad_DP_table_thi[i,t,t:lastnnz] = grad_DP_table_thi[i,t,lastnnz]
         
-        for i in range(self.num_factors):
-            for k in range(xnnz):
-                feature = x_ind_ptr[k] +1
-                for t in range(1,3+1):
-                    grad_v_q[feature,i] += grad_DP_table_thi[i,t,feature] *DP_table_thi[i,t-1,feature-1]*x_data_ptr[k]'''
+            for i in range(self.num_factors):
+                for k in range(xnnz):
+                    feature = x_ind_ptr[k] +1
+                    for t in range(1,3+1):
+                        grad_v_q[feature,i] += grad_DP_table_thi[i,t,feature] *DP_table_thi[i,t-1,feature-1]*x_data_ptr[k]
         
 
         self.grad_v_p = grad_v_p
-        #self.grad_v_q = grad_v_q
+        self.grad_v_q = grad_v_q
 
     cdef _sgd_theta_step_adam(self,DOUBLE *x_data_ptr,INTEGER * x_ind_ptr, int xnnz, DOUBLE y):
         '''
@@ -259,7 +269,7 @@ cdef class FM:
         cdef DOUBLE w0 = self.w0
         cdef np.ndarray[DOUBLE,ndim =1,mode='c'] w = self.w
         cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] v_p = self.v_p
-        #cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] v_q = self.v_q
+        cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] v_q = self.v_q
         cdef np.ndarray[DOUBLE,ndim=1,mode='c'] grad_w = self.grad_w
         cdef int num_factors = self.num_factors
         cdef DOUBLE p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
@@ -288,10 +298,8 @@ cdef class FM:
             grad_w[feature] = mult*x_data_ptr[i] + 2*self.reg_1*w[feature]
             self.prev_grad_w[feature] = beta2*self.prev_grad_w[feature] + (1-beta2)*grad_w[feature]**2
             self.adam_grad_w[feature] = beta1*self.adam_grad_w[feature] + (1-beta1)*grad_w[feature]
-
             hat_m  = self.adam_grad_w[feature]/(1-beta1)
             hat_v = self.prev_grad_w[feature]/(1-beta2)
-            
             w[feature] -= (eta/(np.sqrt(hat_v)+1e-8))*hat_m
             
 
@@ -309,16 +317,27 @@ cdef class FM:
                 grad_v_p[feature,i] = mult*grad_v_p[feature,i] + 2*self.reg_2*v_p[feature,i]
                 self.prev_grad_v_p[feature,i] = beta2*self.prev_grad_v_p[feature,i] + (1-beta2)* grad_v_p[feature,i]**2
                 self.adam_grad_v_p[feature,i] = beta1*self.adam_grad_v_p[feature,i] + (1-beta1)* grad_v_p[feature,i]
-                
                 hat_m = self.adam_grad_v_p[feature,i]/(1-beta1)
                 hat_v = self.prev_grad_v_p[feature,i]/(1-beta2)
                 v_p[feature,i] -= (eta/(np.sqrt(hat_v)+1e-8))*hat_m
+        
+        #third -order
+        if self.num_order == 3:
+            for i in range(1,self.num_factors+1):
+                for j in range(xnnz):
+                    feature = x_ind_ptr[j]+1
+                    grad_v_q[feature,i] = mult*grad_v_q[feature,i] + 2*self.reg_2*v_q[feature,i]
+                    self.prev_grad_v_q[feature,i] = beta2*self.prev_grad_v_q[feature,i] + (1-beta2)* grad_v_q[feature,i]**2
+                    self.adam_grad_v_q[feature,i] = beta1*self.adam_grad_v_q[feature,i] + (1-beta1)* grad_v_q[feature,i]
+                    hat_m = self.adam_grad_v_q[feature,i]/(1-beta1)
+                    hat_v = self.prev_grad_v_q[feature,i]/(1-beta2)
+                    v_q[feature,i] -= (eta/(np.sqrt(hat_v)+1e-8))*hat_m   
               
 
         self.w0 = w0
         self.w = w
         self.v_p = v_p
-        #self.v_q = v_q
+        self.v_q = v_q
         self.t +=1
         self.count +=1    
     cdef _sgd_theta_step_adadelta(self,DOUBLE *x_data_ptr,INTEGER * x_ind_ptr, int xnnz, DOUBLE y):
@@ -457,19 +476,44 @@ cdef class FM:
         cdef int itercount = 0
         cdef unsigned int epoch
         cdef unsigned int i
+
+        #add early stopping support 
+        cdef int early_stopping = 0
+        cdef double minist_loss = 1000
+        
+        fh_train = open(self.path+'train_'+str(self.reg_1)+'_'+str(self.reg_2)+'_order_'+str(self.num_order)+'.txt','w')
+        fh_test = open(self.path +'test_'+str(self.reg_1)+'_'+str(self.reg_2)+'_order_'+str(self.num_order)+'.txt','w')
         for epoch in range(self.n_iter):
             self.count = 0 
             self.sum_loss = 0
             dataset.shuffle()
-
+            
             for i in tqdm(range(n_samples)):
                 dataset.next(&x_data_ptr,&x_ind_ptr,&xnnz,&y)
                 self._sgd_theta_step_adam(x_data_ptr,x_ind_ptr,xnnz,y)
-            print('training_error:%f'%np.sqrt(self.sum_loss/self.count))
-            if itercount % 10==0:
+            training_error = np.sqrt(self.sum_loss/self.count)
+            print('training_error:%f'%training_error)
+
+            fh_train.write(str(training_error)+'\n')
+            if itercount % 1==0:
                 pred = self._predict(self.x_test)
                 test_error = np.sqrt(np.sum((pred-self.y_test)**2)/pred.shape[0])
                 print('Testing error %f'%test_error)
+                fh_test.write(str(test_error)+'\n')
+
+                if minist_loss > test_error:
+                    early_stopping  = 0
+                    minist_loss = test_error
+                early_stopping +=1 
+                if early_stopping == 20:
+                    print('early_stopping......')
+                    fh_train.close()
+                    fh_test.close()
+                    break
+        
+            #itercount +=1
+        fh_train.close()
+        fh_test.close()
     cdef _squared_loss(self,DOUBLE y, DOUBLE p):
         return (y-p)*(y-p)
 

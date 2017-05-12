@@ -10,6 +10,7 @@ class HOFM:
                  num_order = 2,
                  num_factors = 10,
                  num_iter = 10,
+                 path = './',
                  reg_1 = 0.01,
                  reg_2 = 0.01,
                  learning_rate = 1):
@@ -22,7 +23,7 @@ class HOFM:
         self.reg_1 = reg_1
         self.reg_2 = reg_2
         self.learning_rate = learning_rate
-
+        self.path = path
   
     def _bool_to_int(self,bool_arg):
         if bool_arg == True:
@@ -51,7 +52,8 @@ class HOFM:
                           reg_1 = self.reg_1,
                           reg_2 = self.reg_2,
                           learning_rate = self.learning_rate,
-                          method = 'adagrad',
+                          method = 'adam',
+                          path = self.path,
                           x_test = x_test_data,
                           y_test = y_test)
         self.fm_fast.fit(X_train_dataset)

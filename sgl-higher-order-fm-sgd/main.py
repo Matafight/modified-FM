@@ -22,13 +22,13 @@ def loadData(filename):
 
 def choose_hyparmeter(x_train,train_label,x_test,test_label,path,num_factors):
     
-    reg_1_set = [0.001]
-    reg_2_set = [0.001]
+    reg_1_set = [0.001,0.01,0.1]
+    reg_2_set = [0.001,0.01,0.1]
 
     for reg_1 in reg_1_set:
         for reg_2 in reg_2_set:
-            hofm_model = HOFM(reg_1 = reg_1,reg_2 = reg_1,num_factors = num_factors,num_iter = 100,path = path,num_order = 3,learning_rate = 0.001)
-            hofm_model.fit(x_train,train_label,x_test,test_label)   
+            hofm_model = HOFM(reg_1 = reg_1,reg_2 = reg_2,num_factors = num_factors,num_iter = 100,path = path,num_order = 3,learning_rate = 0.001)
+            hofm_model.fit(x_train,train_label,x_test,test_label) 
 
 if __name__=='__main__':
 
@@ -41,6 +41,9 @@ if __name__=='__main__':
  
     sdn = results_arg.short_data_name
     num_factors = results_arg.num_factors
+    import chardet 
+    fencoding = chardet.detect(sdn)
+    print fencoding
     if(sdn in 'train_Genedata'):
         training_names = ['train_Genedata.0','train_Genedata.1','train_Genedata.2','train_Genedata.4','train_Genedata.4']
         testing_names = ['test_Genedata.0','test_Genedata.1','test_Genedata.2','test_Genedata.3','test_Genedata.4']

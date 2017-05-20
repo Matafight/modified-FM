@@ -1,6 +1,7 @@
 *.pyc
 *.pyd
 *.c
+*.so
 build/
 results/
 data/
@@ -10,3 +11,4 @@ results_summary.txt
 lasso
 second-order
 analysis_resutls.py
+polylearn_comparing_method/

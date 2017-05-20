@@ -28,7 +28,7 @@ def choose_hyparmeter(x_train,train_label,x_test,test_label,path):
 
     for reg_1 in reg_1_set:
         for reg_2 in reg_2_set:
-            hofm_model = HOFM(reg_1 = reg_1,reg_2 = reg_1,num_factors = 10,num_iter = 100,path = path,num_order = 3,learning_rate = 0.001)
+            hofm_model = HOFM(reg_1 = reg_1,reg_2 = reg_2,num_factors = 10,num_iter = 300,path = path,num_order = 3,learning_rate = 0.001)
             hofm_model.fit(x_train,train_label,x_test,test_label)   
 
 if __name__=='__main__':
@@ -39,8 +39,10 @@ if __name__=='__main__':
     parser.add_argument('-num_factors',action='store',dest='num_factors',type=int)
     
     results_arg = parser.parse_args()
- 
+    import chardet
+    
     sdn = results_arg.short_data_name
+    print(chardet.detect(sdn))
     num_factors = results_arg.num_factors
     if(sdn in 'train_Genedata'):
         training_names = ['train_Genedata.0','train_Genedata.1','train_Genedata.2','train_Genedata.4','train_Genedata.4']
@@ -48,8 +50,8 @@ if __name__=='__main__':
     elif(sdn in 'u2.base'):
         #training_names=['u1.base','u2.base','u3.base','u4.base','u5.base']
         #testing_names=['u1.test','u2.test','u3.test','u4.test','u5.test']
-        training_names=['u2.base']
-        testing_names=['u2.test']
+        training_names=['u1.base']
+        testing_names=['u1.test']
     elif(sdn in 'ml-1m-train'):
         #training_names = ['ml-1m-train-0.txt','ml-1m-train-1.txt','ml-1m-train-2.txt','ml-1m-train-3.txt','ml-1m-train-4.txt']
         #testing_names = ['ml-1m-test-0.txt','ml-1m-test-1.txt','ml-1m-test-2.txt','ml-1m-test-3.txt','ml-1m-test-4.txt']

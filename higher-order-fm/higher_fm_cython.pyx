@@ -267,7 +267,7 @@ cdef class FM:
             I am going to implement the momentum,adagrad and adam algorithm 2017/05/10
         '''
         cdef DOUBLE w0 = self.w0
-        cdef np.ndarray[DOUBLE,ndim =1,mode='c'] w = self.w
+        cdef np.ndarray[DOUBLE,ndim = 1,mode='c'] w = self.w
         cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] v_p = self.v_p
         cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] v_q = self.v_q
         cdef np.ndarray[DOUBLE,ndim=1,mode='c'] grad_w = self.grad_w

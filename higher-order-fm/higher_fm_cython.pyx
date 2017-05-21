@@ -20,6 +20,7 @@ cdef class FM:
     cdef str dataname
     cdef DOUBLE reg_1
     cdef DOUBLE reg_2
+    cdef DOUBLE reg_3
     cdef double learning_rate
     cdef DOUBLE t
     cdef double t0
@@ -64,6 +65,7 @@ cdef class FM:
                  double max_target,
                  double reg_1,
                  double reg_2,
+                 double reg_3,
                  double learning_rate,
                  str method,
                  str path,
@@ -75,10 +77,15 @@ cdef class FM:
         self.num_attributes = num_attributes
         self.reg_1 = reg_1
         self.reg_2 = reg_2
+        self.reg_3 = reg_3
         self.t = 1
         self.t0 =1
         self.w0 = 1
-
+        #随机初始化，事实证明随机初始化不靠谱
+        #self.w = np.random.normal(0,0.01,num_attributes)
+        #self.v_p = np.random.normal(0,0.01,(num_attributes+1,num_factors+1))
+        #self.v_q = np.random.normal(0,0.01,(num_attributes+1,num_factors+1))
+        
         self.w = np.zeros(self.num_attributes)
         self.v_p = np.zeros((self.num_attributes+1,self.num_factors+1))
         self.v_q = np.zeros((self.num_attributes+1,self.num_factors+1))
@@ -326,7 +333,7 @@ cdef class FM:
             for i in range(1,self.num_factors+1):
                 for j in range(xnnz):
                     feature = x_ind_ptr[j]+1
-                    grad_v_q[feature,i] = mult*grad_v_q[feature,i] + 2*self.reg_2*v_q[feature,i]
+                    grad_v_q[feature,i] = mult*grad_v_q[feature,i] + 2*self.reg_3*v_q[feature,i]
                     self.prev_grad_v_q[feature,i] = beta2*self.prev_grad_v_q[feature,i] + (1-beta2)* grad_v_q[feature,i]**2
                     self.adam_grad_v_q[feature,i] = beta1*self.adam_grad_v_q[feature,i] + (1-beta1)* grad_v_q[feature,i]
                     hat_m = self.adam_grad_v_q[feature,i]/(1-beta1)
@@ -340,10 +347,9 @@ cdef class FM:
         self.v_q = v_q
         self.t +=1
         self.count +=1    
+        
     cdef _sgd_theta_step_adadelta(self,DOUBLE *x_data_ptr,INTEGER * x_ind_ptr, int xnnz, DOUBLE y):
-        '''
-            I am going to implement the momentum,adagrad and adam algorithm 2017/05/10
-        '''
+        #hasn't add codes handling num_degree = 3
         cdef DOUBLE w0 = self.w0
         cdef np.ndarray[DOUBLE,ndim =1,mode='c'] w = self.w
         cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] v_p = self.v_p
@@ -400,23 +406,43 @@ cdef class FM:
         #self.v_q = v_q
         self.t +=1
         self.count +=1
-
+        
+    def return_sparsity(self):
+        cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
+        cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] p = self.v_p
+        cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] q = self.v_q
+        cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] U
+        if self.num_order == 3:  
+            U= np.concatenate((np.reshape(w,(self.num_attributes,1)),p[1:self.num_attributes+1,1:self.num_factors+1],q[1:self.num_attributes+1,1:self.num_factors+1]),axis = 1)
+            zeros_ind_total = U==0
+            total = (self.num_factors*2+1)*self.num_attributes
+            per_total = np.sum(zeros_ind_total)/float(total)
+            per_w = np.sum(w==0)/float(self.num_attributes)
+        else:
+            U= np.concatenate((np.reshape(w,(self.num_attributes,1)),p[1:self.num_attributes+1,1:self.num_factors+1]),axis = 1)
+            zeros_ind_total = U==0
+            total = (self.num_factors+1)*self.num_attributes
+            per_total = np.sum(zeros_ind_total)/float(total)
+            per_w = np.sum(w==0)/float(self.num_attributes)
+        
+        return per_w,per_total
+        
     cdef _sgd_theta_step(self,DOUBLE *x_data_ptr,INTEGER * x_ind_ptr, int xnnz, DOUBLE y):
-        '''
-            I am going to implement the momentum,adagrad and adam algorithm 2017/05/10
-        '''
         cdef DOUBLE w0 = self.w0
         cdef np.ndarray[DOUBLE,ndim =1,mode='c'] w = self.w
         cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] v_p = self.v_p
-        #cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] v_q = self.v_q
+        cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] v_q = self.v_q
         cdef np.ndarray[DOUBLE,ndim=1,mode='c'] grad_w = self.grad_w
         cdef int num_factors = self.num_factors
         cdef DOUBLE p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
         cdef DOUBLE mult = 2*(p-y)
 
-        #self.learning_rate = 0.001
+        self.learning_rate = 0.001
+        #the learning_rate should decreased with the iteration 
+        #self.learning_rate = 0.01/(self.t + self.t0)
         self.sum_loss += self._squared_loss(y,p)
-
+        
+        
         cdef unsigned int i=0
         cdef unsigned int j=0
         cdef int feature =0
@@ -430,11 +456,8 @@ cdef class FM:
         for i in range(xnnz):
             feature = x_ind_ptr[i]
             grad_w[feature] = mult*x_data_ptr[i] + 2*self.reg_1*w[feature]
-
-            self.prev_grad_w[feature] = 0.9*self.prev_grad_w[feature] + 0.1*grad_w[feature]**2
-            #self.prev_grad_w[feature] += grad_w[feature]**2
-            #w[feature] -= self.learning_rate*(grad_w[feature])
-            w[feature] -= (self.learning_rate/np.sqrt(self.prev_grad_w[feature]+1e-8))*grad_w[feature]
+            w[feature] -= self.learning_rate*(grad_w[feature])
+            
 
         
 
@@ -448,16 +471,20 @@ cdef class FM:
             for j in range(xnnz):
                 feature = x_ind_ptr[j]+1
                 grad_v_p[feature,i] = mult*grad_v_p[feature,i] + 2*self.reg_2*v_p[feature,i]
-                #self.prev_grad_v_p[feature,i] += grad_v_p[feature,i]**2
-                self.prev_grad_v_p[feature,i] = 0.9*self.prev_grad_v_p[feature,i] + 0.1* grad_v_p[feature,i]**2
-                v_p[feature,i] -= (self.learning_rate/(np.sqrt(self.prev_grad_v_p[feature,i]+1e-8)))*grad_v_p[feature,i]
-                #v_p[feature,i] -= self.learning_rate*grad_v_p[feature,i]
+                v_p[feature,i] -= self.learning_rate*grad_v_p[feature,i]
                 
-
+        #third -order
+        if self.num_order == 3:
+            for i in range(1,self.num_factors+1):
+                for j in range(xnnz):
+                    feature = x_ind_ptr[j]+1
+                    grad_v_q[feature,i] = mult*grad_v_q[feature,i] + 2*self.reg_3*v_q[feature,i]
+                    v_q[feature,i] -= self.learning_rate*grad_v_q[feature,i] 
+                    
         self.w0 = w0
         self.w = w
         self.v_p = v_p
-        #self.v_q = v_q
+        self.v_q = v_q
         self.t +=1
         self.count +=1
 
@@ -487,10 +514,12 @@ cdef class FM:
             self.count = 0 
             self.sum_loss = 0
             dataset.shuffle()
-            
+            w_sparsity,total_sparsity = self.return_sparsity()
+            print('w_sparsity: %s, total_spar %s '%(str(w_sparsity),str(total_sparsity)))
             for i in tqdm(range(n_samples)):
                 dataset.next(&x_data_ptr,&x_ind_ptr,&xnnz,&y)
-                self._sgd_theta_step_adam(x_data_ptr,x_ind_ptr,xnnz,y)
+                #self._sgd_theta_step_adam(x_data_ptr,x_ind_ptr,xnnz,y)
+                self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
             training_error = np.sqrt(self.sum_loss/self.count)
             print('training_error:%f'%training_error)
 
@@ -500,7 +529,9 @@ cdef class FM:
                 test_error = np.sqrt(np.sum((pred-self.y_test)**2)/pred.shape[0])
                 print('Testing error %f'%test_error)
                 fh_test.write(str(test_error)+'\n')
-
+                #print out sparsity
+                w_sparsity,total_sparsity = self.return_sparsity()
+                print('w_sparsity: %s, total_spar %s '%(str(w_sparsity),str(total_sparsity)))
                 if minist_loss > test_error:
                     early_stopping  = 0
                     minist_loss = test_error

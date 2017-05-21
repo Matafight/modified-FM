@@ -13,6 +13,7 @@ class HOFM:
                  path = './',
                  reg_1 = 0.01,
                  reg_2 = 0.01,
+                 reg_3 = 0.01,
                  learning_rate = 1):
 
         self.num_order = num_order
@@ -22,6 +23,7 @@ class HOFM:
         self.reg_0 = 0.01
         self.reg_1 = reg_1
         self.reg_2 = reg_2
+        self.reg_3 = reg_3
         self.learning_rate = learning_rate
         self.path = path
   
@@ -51,6 +53,7 @@ class HOFM:
                           max_target = self.max_target,
                           reg_1 = self.reg_1,
                           reg_2 = self.reg_2,
+                          reg_3 = self.reg_3,
                           learning_rate = self.learning_rate,
                           method = 'adam',
                           path = self.path,

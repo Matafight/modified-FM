@@ -21,15 +21,16 @@ def loadData(filename):
             items.add(movieid)
     return (data,np.array(y),users,items)
 
-def choose_hyparmeter(x_train,train_label,x_test,test_label,path):
+def choose_hyparmeter(x_train,train_label,x_test,test_label,num_factors,num_order,path):
     
-    reg_1_set = [0.001,0.01,0.1]
-    reg_2_set = [0.001,0.01,0.1]
-
+    reg_1_set = [0.01]
+    reg_2_set = [0.0001,0.01,0.1]
+    reg_3_set = [0.0001,0.01,0.1]
     for reg_1 in reg_1_set:
         for reg_2 in reg_2_set:
-            hofm_model = HOFM(reg_1 = reg_1,reg_2 = reg_2,num_factors = 10,num_iter = 300,path = path,num_order = 3,learning_rate = 0.001)
-            hofm_model.fit(x_train,train_label,x_test,test_label)   
+            for reg_3 in reg_3_set:
+                hofm_model = HOFM(reg_1 = reg_1,reg_2 = reg_2,reg_3 = reg_3,num_factors = num_factors,num_iter = 300,path = path,num_order = num_order,learning_rate = 0.001)
+                hofm_model.fit(x_train,train_label,x_test,test_label)   
 
 if __name__=='__main__':
 
@@ -50,8 +51,8 @@ if __name__=='__main__':
     elif(sdn in 'u2.base'):
         #training_names=['u1.base','u2.base','u3.base','u4.base','u5.base']
         #testing_names=['u1.test','u2.test','u3.test','u4.test','u5.test']
-        training_names=['u1.base']
-        testing_names=['u1.test']
+        training_names=['u2.base']
+        testing_names=['u2.test']
     elif(sdn in 'ml-1m-train'):
         #training_names = ['ml-1m-train-0.txt','ml-1m-train-1.txt','ml-1m-train-2.txt','ml-1m-train-3.txt','ml-1m-train-4.txt']
         #testing_names = ['ml-1m-test-0.txt','ml-1m-test-1.txt','ml-1m-test-2.txt','ml-1m-test-3.txt','ml-1m-test-4.txt']
@@ -103,6 +104,6 @@ if __name__=='__main__':
         print('dataset:'+train_data_name)
         
   
-        choose_hyparmeter(x_train,train_label,x_test,test_label,path_detail)
+        choose_hyparmeter(x_train,train_label,x_test,test_label,num_factors,num_order = 2,path = path_detail)
 
    

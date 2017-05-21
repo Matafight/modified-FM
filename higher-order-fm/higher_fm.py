@@ -10,11 +10,15 @@ class FM():
         # w,v_p,v_q 需要随机初始化,v_p 和 v_q  的 size 是 (num_attributes+1,num_factors+1)
         self.verbose = verbose
         self.w0 = 1
-        self.w = np.zeros(num_attributes)
+        # self.w = np.zeros(num_attributes)
+        # self.v_p = np.zeros((num_attributes+1,num_factors+1))
+        # self.v_q = np.zeros((num_attributes+1,num_factors+1))
+        #随机初始化
+        #(b-a)*np.random.random_sample(size)-1 can generate numbers in range(a,b)
+        self.w = 2*np.random.random_sample(num_attributes)-1
+        self.v_p = 2*np.random.random_sample((num_attributes+1,num_factors+1))-1
+        self.v_q = 2*np.random.random_sample((num_attributes+1,num_factors+1))-1
         
-        self.v_p = np.zeros((num_attributes+1,num_factors+1))
-        self.v_q = np.zeros((num_attributes+1,num_factors+1))
-
         self.num_factors = num_factors
         self.num_attributes  = num_attributes
         self.num_order = num_order

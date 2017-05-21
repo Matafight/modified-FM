@@ -278,7 +278,17 @@ cdef class FM:
 
    
     
-
+    def return_sparsity(self):
+        cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
+        cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] p = self.v_p
+        cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] q = self.v_q
+        
+        cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] U = np.concatenate((np.reshape(w,(self.num_attributes,1)),p[1:self.num_attributes+1,1:self.num_factors+1],q[1:self.num_attributes+1,1:self.num_factors+1]),axis = 1)
+        zeros_ind_total = U==0
+        total = (self.num_factors*2+1)*self.num_attributes
+        per_total = np.sum(zeros_ind_total)/float(total)
+        per_w = np.sum(w==0)/float(self.num_attributes)
+        return per_w,per_total
     
     cdef _sgd_theta_FOBOS(self,DOUBLE *x_data_ptr,INTEGER * x_ind_ptr, int xnnz, DOUBLE y):
  
@@ -304,6 +314,7 @@ cdef class FM:
 
         cdef DOUBLE hat_m
         cdef DOUBLE hat_v
+        self.learning_rate = 0.01/(self.t + self.t0)
         #bias
         cdef DOUBLE grad_0 = mult
         w0 -= self.learning_rate*grad_0
@@ -412,13 +423,12 @@ cdef class FM:
             self.count = 0 
             self.sum_loss = 0
             dataset.shuffle()
-            
             for i in tqdm(range(n_samples)):
                 dataset.next(&x_data_ptr,&x_ind_ptr,&xnnz,&y)
-                #self._sgd_theta_step_adam(x_data_ptr,x_ind_ptr,xnnz,y)
                 self._sgd_theta_FOBOS(x_data_ptr,x_ind_ptr,xnnz,y)
             training_error = np.sqrt(self.sum_loss/self.count)
             print('training_error:%f'%training_error)
+            
 
             fh_train.write(str(training_error)+'\n')
             if itercount % 1==0:
@@ -426,6 +436,9 @@ cdef class FM:
                 test_error = np.sqrt(np.sum((pred-self.y_test)**2)/pred.shape[0])
                 print('Testing error %f'%test_error)
                 fh_test.write(str(test_error)+'\n')
+                #print out sparsity
+                w_sparsity,total_sparsity = self.return_sparsity()
+                print('w_sparsity: %s, total_spar %s '%(str(w_sparsity),str(total_sparsity)))
 
                 if minist_loss > test_error:
                     early_stopping  = 0

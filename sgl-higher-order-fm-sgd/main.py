@@ -22,8 +22,8 @@ def loadData(filename):
 
 def choose_hyparmeter(x_train,train_label,x_test,test_label,path,num_factors):
     
-    reg_1_set = [0.001,0.01,0.1]
-    reg_2_set = [0.001,0.01,0.1]
+    reg_1_set = [0.00001,0.00001,0.0001]
+    reg_2_set = [0.00001,0.00001,0.0001]
 
     for reg_1 in reg_1_set:
         for reg_2 in reg_2_set:
@@ -50,8 +50,8 @@ if __name__=='__main__':
     elif(sdn in 'u2.base'):
         #training_names=['u1.base','u2.base','u3.base','u4.base','u5.base']
         #testing_names=['u1.test','u2.test','u3.test','u4.test','u5.test']
-        training_names=['u2.base']
-        testing_names=['u2.test']
+        training_names=['u1.base']
+        testing_names=['u1.test']
     elif(sdn in 'ml-1m-train'):
         #training_names = ['ml-1m-train-0.txt','ml-1m-train-1.txt','ml-1m-train-2.txt','ml-1m-train-3.txt','ml-1m-train-4.txt']
         #testing_names = ['ml-1m-test-0.txt','ml-1m-test-1.txt','ml-1m-test-2.txt','ml-1m-test-3.txt','ml-1m-test-4.txt']

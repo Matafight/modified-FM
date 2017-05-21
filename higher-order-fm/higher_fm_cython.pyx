@@ -81,14 +81,14 @@ cdef class FM:
         self.t = 1
         self.t0 =1
         self.w0 = 1
-        #随机初始化，事实证明随机初始化不靠谱
-        #self.w = np.random.normal(0,0.01,num_attributes)
-        #self.v_p = np.random.normal(0,0.01,(num_attributes+1,num_factors+1))
-        #self.v_q = np.random.normal(0,0.01,(num_attributes+1,num_factors+1))
+        #随机初始化，很重要，不然会陷入全零解
+        self.w = np.random.normal(0,0.000001,num_attributes)
+        self.v_p = np.random.normal(0,0.000001,(num_attributes+1,num_factors+1))
+        self.v_q = np.random.normal(0,0.000001,(num_attributes+1,num_factors+1))
         
-        self.w = np.zeros(self.num_attributes)
-        self.v_p = np.zeros((self.num_attributes+1,self.num_factors+1))
-        self.v_q = np.zeros((self.num_attributes+1,self.num_factors+1))
+        #self.w = np.zeros(self.num_attributes)
+        #self.v_p = np.zeros((self.num_attributes+1,self.num_factors+1))
+        #self.v_q = np.zeros((self.num_attributes+1,self.num_factors+1))
 
         self.learning_rate = learning_rate
         self.sum_loss = 0.0
@@ -147,6 +147,7 @@ cdef class FM:
             result += w[feature]*x_data_ptr[i]
 
         cdef int lastnnz = 0
+        #DP_table 是在这儿计算的，说明这儿有问题，再判断是不是DPT都等于零
         for i in range(self.num_factors):
             DPT = self.DP_table_sec[i,:,:]
             for t in range(1,2+1):
@@ -154,8 +155,11 @@ cdef class FM:
                 for k in range(xnnz):
                     feature = x_ind_ptr[k] + 1
                     DPT[t,lastnnz+1:feature] = DPT[t,lastnnz]
-                    DPT[t,feature] = DPT[t,feature-1] + v_p[feature,i]*x_data_ptr[k]
+                    DPT[t,feature] = DPT[t,feature-1] + v_p[feature,i]*x_data_ptr[k]*DPT[t-1,feature-1]
                     lastnnz = feature
+            #u = np.sum(DPT==0)
+            #if u != 2*(self.num_attributes+1):
+            #    print('DPT has non-zero elements')
             self.DP_table_sec[i,:,:] = DPT
             result += DPT[2,self.num_attributes]
         #third order
@@ -167,7 +171,7 @@ cdef class FM:
                     for k in range(xnnz):
                         feature = x_ind_ptr[k] + 1
                         DPT[t,lastnnz+1:feature] = DPT[t,lastnnz]
-                        DPT[t,feature] = DPT[t,feature-1] + v_q[feature,i]*x_data_ptr[k]
+                        DPT[t,feature] = DPT[t,feature-1] + v_q[feature,i]*x_data_ptr[k]*DPT[t-1,feature-1]
                         lastnnz = feature
                 self.DP_table_thi[i,:,:] = DPT
                 result += DPT[3,self.num_attributes]
@@ -189,9 +193,23 @@ cdef class FM:
             p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
             return_preds[i] = p
         return return_preds
-
+    
+    def if_dp_table_zero(self):
+        self.num_factors,2+1,self.num_attributes+1
+        flag = True
+        for i in range(self.num_factors):
+        
+            u = self.DP_table_sec[i,:,:] == 0
+            if(np.sum(u)!=(2*(self.num_attributes+1))):
+                flag = False
+                break
+        return flag
+                
     cdef _grad_DP(self,DOUBLE *x_data_ptr,INTEGER *x_ind_ptr,int xnnz):
-
+        
+        #先判断一下DP_table是否都等于零,如果连DP_table 都是零的话，grad_v_p更是零了
+        #if(not self.if_dp_table_zero()):
+        #    print('there exist DP TABLE not zero')
         cdef int d = self.num_attributes
         cdef int num_factors = self.num_factors
         cdef np.ndarray[DOUBLE,ndim =3,mode ='c'] DP_table_sec= self.DP_table_sec
@@ -414,18 +432,26 @@ cdef class FM:
         cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] U
         if self.num_order == 3:  
             U= np.concatenate((np.reshape(w,(self.num_attributes,1)),p[1:self.num_attributes+1,1:self.num_factors+1],q[1:self.num_attributes+1,1:self.num_factors+1]),axis = 1)
+            U2= np.concatenate((p[1:self.num_attributes+1,1:self.num_factors+1],q[1:self.num_attributes+1,1:self.num_factors+1]),axis = 1)
             zeros_ind_total = U==0
+            zeros_ind_total2 = U2==0
             total = (self.num_factors*2+1)*self.num_attributes
+            total2 = (self.num_factors*2)*self.num_attributes
             per_total = np.sum(zeros_ind_total)/float(total)
+            per_int_total = np.sum(zeros_ind_total2)/float(total2)
             per_w = np.sum(w==0)/float(self.num_attributes)
         else:
             U= np.concatenate((np.reshape(w,(self.num_attributes,1)),p[1:self.num_attributes+1,1:self.num_factors+1]),axis = 1)
+            U2 = p[1:self.num_attributes+1,1:self.num_factors+1]
             zeros_ind_total = U==0
+            zeros_ind_total2 = U2==0
             total = (self.num_factors+1)*self.num_attributes
+            total2 = self.num_factors*self.num_attributes
             per_total = np.sum(zeros_ind_total)/float(total)
+            per_int_total = np.sum(zeros_ind_total2)/float(total2)
             per_w = np.sum(w==0)/float(self.num_attributes)
         
-        return per_w,per_total
+        return per_w,per_total,per_int_total
         
     cdef _sgd_theta_step(self,DOUBLE *x_data_ptr,INTEGER * x_ind_ptr, int xnnz, DOUBLE y):
         cdef DOUBLE w0 = self.w0
@@ -514,8 +540,8 @@ cdef class FM:
             self.count = 0 
             self.sum_loss = 0
             dataset.shuffle()
-            w_sparsity,total_sparsity = self.return_sparsity()
-            print('w_sparsity: %s, total_spar %s '%(str(w_sparsity),str(total_sparsity)))
+            w_sparsity,total_sparsity,inter_sparsity = self.return_sparsity()
+            print('w_sparsity: %s, inter_sparsity: %s total_spar %s '%(str(w_sparsity),str(inter_sparsity),str(total_sparsity)))
             for i in tqdm(range(n_samples)):
                 dataset.next(&x_data_ptr,&x_ind_ptr,&xnnz,&y)
                 #self._sgd_theta_step_adam(x_data_ptr,x_ind_ptr,xnnz,y)
@@ -530,8 +556,8 @@ cdef class FM:
                 print('Testing error %f'%test_error)
                 fh_test.write(str(test_error)+'\n')
                 #print out sparsity
-                w_sparsity,total_sparsity = self.return_sparsity()
-                print('w_sparsity: %s, total_spar %s '%(str(w_sparsity),str(total_sparsity)))
+                w_sparsity,total_sparsity,inter_sparsity = self.return_sparsity()
+                print('w_sparsity: %s, inter_sparsity: %s total_spar %s '%(str(w_sparsity),str(inter_sparsity),str(total_sparsity)))
                 if minist_loss > test_error:
                     early_stopping  = 0
                     minist_loss = test_error

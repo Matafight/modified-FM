@@ -20,14 +20,14 @@ def loadData(filename):
             items.add(movieid)
     return (data,np.array(y),users,items)
 
-def choose_hyparmeter(x_train,train_label,x_test,test_label,path,num_factors):
+def choose_hyparmeter(x_train,train_label,x_test,test_label,path,num_order,num_factors):
     
     reg_1_set = [0.00001,0.00001,0.0001]
     reg_2_set = [0.00001,0.00001,0.0001]
 
     for reg_1 in reg_1_set:
         for reg_2 in reg_2_set:
-            hofm_model = HOFM(reg_1 = reg_1,reg_2 = reg_2,num_factors = num_factors,num_iter = 100,path = path,num_order = 3,learning_rate = 0.001)
+            hofm_model = HOFM(reg_1 = reg_1,reg_2 = reg_2,num_factors = num_factors,num_iter = 100,path = path,num_order = num_order,learning_rate = 0.001)
             hofm_model.fit(x_train,train_label,x_test,test_label) 
 
 if __name__=='__main__':
@@ -102,7 +102,7 @@ if __name__=='__main__':
             test_label = np.array(test_data[:,num_attributes-1])
         print('dataset:'+train_data_name)
         
-  
-        choose_hyparmeter(x_train,train_label,x_test,test_label,path_detail,num_factors)
+        num_order = 2
+        choose_hyparmeter(x_train,train_label,x_test,test_label,path_detail,num_order = num_order,num_factors = num_factors)
 
    

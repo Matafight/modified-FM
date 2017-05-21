@@ -85,10 +85,14 @@ cdef class FM:
         self.t = 1
         self.t0 =1
         self.w0 = 1
-
-        self.w = np.zeros(self.num_attributes)
-        self.v_p = np.zeros((self.num_attributes+1,self.num_factors+1))
-        self.v_q = np.zeros((self.num_attributes+1,self.num_factors+1))
+        
+        #随机初始化，很重要，不然会陷入全零解
+        self.w = np.random.normal(0,0.00001,num_attributes)
+        self.v_p = np.random.normal(0,0.00001,(num_attributes+1,num_factors+1))
+        self.v_q = np.random.normal(0,0.00001,(num_attributes+1,num_factors+1))
+        #self.w = np.zeros(self.num_attributes)
+        #self.v_p = np.zeros((self.num_attributes+1,self.num_factors+1))
+        #self.v_q = np.zeros((self.num_attributes+1,self.num_factors+1))
 
         self.learning_rate = learning_rate
         self.sum_loss = 0.0
@@ -161,7 +165,7 @@ cdef class FM:
                 for k in range(xnnz):
                     feature = x_ind_ptr[k] + 1
                     DPT[t,lastnnz+1:feature] = DPT[t,lastnnz]
-                    DPT[t,feature] = DPT[t,feature-1] + v_p[feature,i]*x_data_ptr[k]
+                    DPT[t,feature] = DPT[t,feature-1] + v_p[feature,i]*x_data_ptr[k]*DPT[t-1,feature-1]
                     lastnnz = feature
             self.DP_table_sec[i,:,:] = DPT
             result += DPT[2,self.num_attributes]
@@ -174,7 +178,7 @@ cdef class FM:
                     for k in range(xnnz):
                         feature = x_ind_ptr[k] + 1
                         DPT[t,lastnnz+1:feature] = DPT[t,lastnnz]
-                        DPT[t,feature] = DPT[t,feature-1] + v_q[feature,i]*x_data_ptr[k]
+                        DPT[t,feature] = DPT[t,feature-1] + v_q[feature,i]*x_data_ptr[k]*DPT[t-1,feature-1]
                         lastnnz = feature
                 self.DP_table_thi[i,:,:] = DPT
                 result += DPT[3,self.num_attributes]
@@ -282,15 +286,31 @@ cdef class FM:
         cdef np.ndarray[DOUBLE, ndim =1 ,mode='c']  w = self.w
         cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] p = self.v_p
         cdef np.ndarray[DOUBLE, ndim = 2,mode ='c'] q = self.v_q
+        cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] U
+        if self.num_order == 3:  
+            U= np.concatenate((np.reshape(w,(self.num_attributes,1)),p[1:self.num_attributes+1,1:self.num_factors+1],q[1:self.num_attributes+1,1:self.num_factors+1]),axis = 1)
+            U2= np.concatenate((p[1:self.num_attributes+1,1:self.num_factors+1],q[1:self.num_attributes+1,1:self.num_factors+1]),axis = 1)
+            zeros_ind_total = U==0
+            zeros_ind_total2 = U2==0
+            total = (self.num_factors*2+1)*self.num_attributes
+            total2 = (self.num_factors*2)*self.num_attributes
+            per_total = np.sum(zeros_ind_total)/float(total)
+            per_int_total = np.sum(zeros_ind_total2)/float(total2)
+            per_w = np.sum(w==0)/float(self.num_attributes)
+        else:
+            U= np.concatenate((np.reshape(w,(self.num_attributes,1)),p[1:self.num_attributes+1,1:self.num_factors+1]),axis = 1)
+            U2 = p[1:self.num_attributes+1,1:self.num_factors+1]
+            zeros_ind_total = U==0
+            zeros_ind_total2 = U2==0
+            total = (self.num_factors+1)*self.num_attributes
+            total2 = self.num_factors*self.num_attributes
+            per_total = np.sum(zeros_ind_total)/float(total)
+            per_int_total = np.sum(zeros_ind_total2)/float(total2)
+            per_w = np.sum(w==0)/float(self.num_attributes)
         
-        cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] U = np.concatenate((np.reshape(w,(self.num_attributes,1)),p[1:self.num_attributes+1,1:self.num_factors+1],q[1:self.num_attributes+1,1:self.num_factors+1]),axis = 1)
-        zeros_ind_total = U==0
-        total = (self.num_factors*2+1)*self.num_attributes
-        per_total = np.sum(zeros_ind_total)/float(total)
-        per_w = np.sum(w==0)/float(self.num_attributes)
-        return per_w,per_total
+        return per_w,per_total,per_int_total
     
-    cdef _sgd_theta_FOBOS(self,DOUBLE *x_data_ptr,INTEGER * x_ind_ptr, int xnnz, DOUBLE y):
+    cdef _sgd_theta_adam_FOBOS(self,DOUBLE *x_data_ptr,INTEGER * x_ind_ptr, int xnnz, DOUBLE y):
  
         cdef DOUBLE w0 = self.w0
         cdef np.ndarray[DOUBLE,ndim =1,mode='c'] w = self.w
@@ -401,7 +421,100 @@ cdef class FM:
         self.t +=1
         self.count +=1    
     
-    
+    cdef _sgd_theta_step_FOBOS(self,DOUBLE *x_data_ptr,INTEGER * x_ind_ptr, int xnnz, DOUBLE y):
+        cdef DOUBLE w0 = self.w0
+        cdef np.ndarray[DOUBLE,ndim =1,mode='c'] w = self.w
+        cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] v_p = self.v_p
+        cdef np.ndarray[DOUBLE,ndim = 2,mode='c'] v_q = self.v_q
+        cdef np.ndarray[DOUBLE,ndim=1,mode='c'] grad_w = self.grad_w
+        cdef int num_factors = self.num_factors
+        cdef DOUBLE p = self._predict_instance(x_data_ptr,x_ind_ptr,xnnz)
+        cdef DOUBLE mult = 2*(p-y)
+
+        self.learning_rate = 0.001
+        #the learning_rate should decreased with the iteration 
+        #self.learning_rate = 0.01/(self.t + self.t0)
+        self.sum_loss += self._squared_loss(y,p)
+        
+        
+        cdef unsigned int i=0
+        cdef unsigned int j=0
+        cdef int feature =0
+
+
+        #bias
+        cdef DOUBLE grad_0 = mult
+        w0 -= self.learning_rate*grad_0
+
+        #update 1-st order coefficient
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            grad_w[feature] = mult*x_data_ptr[i] 
+            w[feature] -= self.learning_rate*(grad_w[feature])
+            
+
+        
+
+        #update second-order coefficients
+        # _grad_DP return the incomplete gradients
+        self._grad_DP(x_data_ptr,x_ind_ptr,xnnz)
+        cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] grad_v_p = self.grad_v_p
+        cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] grad_v_q = self.grad_v_q
+
+        for i in range(1,self.num_factors+1):
+            for j in range(xnnz):
+                feature = x_ind_ptr[j]+1
+                grad_v_p[feature,i] = mult*grad_v_p[feature,i] 
+                v_p[feature,i] -= self.learning_rate*grad_v_p[feature,i]
+                
+        #third -order
+        if self.num_order == 3:
+            for i in range(1,self.num_factors+1):
+                for j in range(xnnz):
+                    feature = x_ind_ptr[j]+1
+                    grad_v_q[feature,i] = mult*grad_v_q[feature,i] 
+                    v_q[feature,i] -= self.learning_rate*grad_v_q[feature,i] 
+        
+        # L1 regularization
+        self.total_l1 += self.learning_rate*self.reg_1
+        
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            lambda_1 = self.total_l1 - self.cur_l1[feature]
+            self.cur_l1[feature] = self.total_l1
+           
+            comb = np.append(w[feature],[v_p[feature+1,1:],v_q[feature+1,1:]])
+            abscomb = abs(comb)
+            comb[abscomb <= lambda_1] = 0
+            ind = abscomb>lambda_1
+            comb[ind] = ((abscomb[ind]-lambda_1)/abscomb[ind])*comb[ind]
+            w[feature] = comb[0]
+            v_p[feature+1,1:] = comb[1:self.num_factors+1]
+            v_q[feature+1,1:] = comb[self.num_factors+1:]
+        
+        #L2 on each column of U
+        self.total_l21 += self.learning_rate*self.reg_2
+        for i in range(xnnz):
+            feature = x_ind_ptr[i]
+            lambda_2 = self.total_l21 - self.cur_l21[feature]
+            self.cur_l21[feature] = self.total_l21
+            comb  = np.append(w[feature],[v_p[feature+1,1:],v_q[feature+1,1:]])
+            norm_comb = np.linalg.norm(comb)
+            if(norm_comb < lambda_2):
+                mult = 0
+            else:
+                mult = (norm_comb-lambda_2)/norm_comb
+            comb = mult*comb
+            w[feature] = comb[0]
+            v_p[feature+1,1:] = comb[1:self.num_factors+1]
+            v_q[feature+1,1:] = comb[self.num_factors+1:]
+                    
+        self.w0 = w0
+        self.w = w
+        self.v_p = v_p
+        self.v_q = v_q
+        self.t +=1
+        self.count +=1
     
     def fit(self,CSRDataset dataset):
         cdef Py_ssize_t n_samples  = dataset.n_samples
@@ -423,9 +536,12 @@ cdef class FM:
             self.count = 0 
             self.sum_loss = 0
             dataset.shuffle()
+            w_sparsity,total_sparsity,inter_sparsity = self.return_sparsity()
+            print('w_sparsity: %s, inter_sparsity: %s total_spar %s '%(str(w_sparsity),str(inter_sparsity),str(total_sparsity)))
             for i in tqdm(range(n_samples)):
                 dataset.next(&x_data_ptr,&x_ind_ptr,&xnnz,&y)
-                self._sgd_theta_FOBOS(x_data_ptr,x_ind_ptr,xnnz,y)
+                #self._sgd_theta_adam_FOBOS(x_data_ptr,x_ind_ptr,xnnz,y)
+                self._sgd_theta_step_FOBOS(x_data_ptr,x_ind_ptr,xnnz,y)
             training_error = np.sqrt(self.sum_loss/self.count)
             print('training_error:%f'%training_error)
             
@@ -437,8 +553,8 @@ cdef class FM:
                 print('Testing error %f'%test_error)
                 fh_test.write(str(test_error)+'\n')
                 #print out sparsity
-                w_sparsity,total_sparsity = self.return_sparsity()
-                print('w_sparsity: %s, total_spar %s '%(str(w_sparsity),str(total_sparsity)))
+                w_sparsity,total_sparsity,inter_sparsity = self.return_sparsity()
+                print('w_sparsity: %s, inter_sparsity: %s total_spar %s '%(str(w_sparsity),str(inter_sparsity),str(total_sparsity)))
 
                 if minist_loss > test_error:
                     early_stopping  = 0

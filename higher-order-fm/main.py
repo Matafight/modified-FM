@@ -49,10 +49,10 @@ if __name__=='__main__':
         training_names = ['train_Genedata.0','train_Genedata.1','train_Genedata.2','train_Genedata.4','train_Genedata.4']
         testing_names = ['test_Genedata.0','test_Genedata.1','test_Genedata.2','test_Genedata.3','test_Genedata.4']
     elif(sdn in 'u2.base'):
-        #training_names=['u1.base','u2.base','u3.base','u4.base','u5.base']
-        #testing_names=['u1.test','u2.test','u3.test','u4.test','u5.test']
-        training_names=['u2.base']
-        testing_names=['u2.test']
+        training_names=['u1.base','u2.base','u3.base','u4.base','u5.base']
+        testing_names=['u1.test','u2.test','u3.test','u4.test','u5.test']
+        #training_names=['u2.base']
+        #testing_names=['u2.test']
     elif(sdn in 'ml-1m-train'):
         #training_names = ['ml-1m-train-0.txt','ml-1m-train-1.txt','ml-1m-train-2.txt','ml-1m-train-3.txt','ml-1m-train-4.txt']
         #testing_names = ['ml-1m-test-0.txt','ml-1m-test-1.txt','ml-1m-test-2.txt','ml-1m-test-3.txt','ml-1m-test-4.txt']
@@ -104,6 +104,6 @@ if __name__=='__main__':
         print('dataset:'+train_data_name)
         
   
-        choose_hyparmeter(x_train,train_label,x_test,test_label,num_factors,num_order = 2,path = path_detail)
+        choose_hyparmeter(x_train,train_label,x_test,test_label,num_factors,num_order = 3,path = path_detail)
 
    

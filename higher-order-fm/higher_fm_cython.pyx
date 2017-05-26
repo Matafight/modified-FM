@@ -81,7 +81,7 @@ cdef class FM:
         self.t = 1
         self.t0 =1
         self.w0 = 1
-        #随机初始化，很重要，不然会陷入全零解
+        #random initialziation, which is pretty important
         self.w = np.random.normal(0,0.000001,num_attributes)
         self.v_p = np.random.normal(0,0.000001,(num_attributes+1,num_factors+1))
         self.v_q = np.random.normal(0,0.000001,(num_attributes+1,num_factors+1))
@@ -147,7 +147,6 @@ cdef class FM:
             result += w[feature]*x_data_ptr[i]
 
         cdef int lastnnz = 0
-        #DP_table 是在这儿计算的，说明这儿有问题，再判断是不是DPT都等于零
         for i in range(self.num_factors):
             DPT = self.DP_table_sec[i,:,:]
             for t in range(1,2+1):
@@ -157,9 +156,8 @@ cdef class FM:
                     DPT[t,lastnnz+1:feature] = DPT[t,lastnnz]
                     DPT[t,feature] = DPT[t,feature-1] + v_p[feature,i]*x_data_ptr[k]*DPT[t-1,feature-1]
                     lastnnz = feature
-            #u = np.sum(DPT==0)
-            #if u != 2*(self.num_attributes+1):
-            #    print('DPT has non-zero elements')
+                #update 5/26/2017 , finally I fixed the bugs by adding the following line
+                DPT[t,lastnnz+1:self.num_attributes+1] = DPT[t,lastnnz]
             self.DP_table_sec[i,:,:] = DPT
             result += DPT[2,self.num_attributes]
         #third order
@@ -173,8 +171,10 @@ cdef class FM:
                         DPT[t,lastnnz+1:feature] = DPT[t,lastnnz]
                         DPT[t,feature] = DPT[t,feature-1] + v_q[feature,i]*x_data_ptr[k]*DPT[t-1,feature-1]
                         lastnnz = feature
+                    DPT[t,lastnnz+1:self.num_attributes+1] = DPT[t,lastnnz]
                 self.DP_table_thi[i,:,:] = DPT
                 result += DPT[3,self.num_attributes]
+                
 
         return result
 
@@ -207,9 +207,6 @@ cdef class FM:
                 
     cdef _grad_DP(self,DOUBLE *x_data_ptr,INTEGER *x_ind_ptr,int xnnz):
         
-        #先判断一下DP_table是否都等于零,如果连DP_table 都是零的话，grad_v_p更是零了
-        #if(not self.if_dp_table_zero()):
-        #    print('there exist DP TABLE not zero')
         cdef int d = self.num_attributes
         cdef int num_factors = self.num_factors
         cdef np.ndarray[DOUBLE,ndim =3,mode ='c'] DP_table_sec= self.DP_table_sec
@@ -331,7 +328,6 @@ cdef class FM:
         
 
         #update second-order coefficients
-        # _grad_DP return the incomplete gradients
         self._grad_DP(x_data_ptr,x_ind_ptr,xnnz)
         cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] grad_v_p = self.grad_v_p
         cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] grad_v_q = self.grad_v_q
@@ -485,10 +481,7 @@ cdef class FM:
             w[feature] -= self.learning_rate*(grad_w[feature])
             
 
-        
-
         #update second-order coefficients
-        # _grad_DP return the incomplete gradients
         self._grad_DP(x_data_ptr,x_ind_ptr,xnnz)
         cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] grad_v_p = self.grad_v_p
         cdef np.ndarray[DOUBLE,ndim = 2,mode = 'c'] grad_v_q = self.grad_v_q
@@ -533,19 +526,16 @@ cdef class FM:
         #add early stopping support 
         cdef int early_stopping = 0
         cdef double minist_loss = 1000
-        
         fh_train = open(self.path+'train_'+str(self.reg_1)+'_'+str(self.reg_2)+'_order_'+str(self.num_order)+'.txt','w')
         fh_test = open(self.path +'test_'+str(self.reg_1)+'_'+str(self.reg_2)+'_order_'+str(self.num_order)+'.txt','w')
         for epoch in range(self.n_iter):
             self.count = 0 
             self.sum_loss = 0
             dataset.shuffle()
-            w_sparsity,total_sparsity,inter_sparsity = self.return_sparsity()
-            print('w_sparsity: %s, inter_sparsity: %s total_spar %s '%(str(w_sparsity),str(inter_sparsity),str(total_sparsity)))
             for i in tqdm(range(n_samples)):
                 dataset.next(&x_data_ptr,&x_ind_ptr,&xnnz,&y)
-                #self._sgd_theta_step_adam(x_data_ptr,x_ind_ptr,xnnz,y)
-                self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
+                self._sgd_theta_step_adam(x_data_ptr,x_ind_ptr,xnnz,y)
+                #self._sgd_theta_step(x_data_ptr,x_ind_ptr,xnnz,y)
             training_error = np.sqrt(self.sum_loss/self.count)
             print('training_error:%f'%training_error)
 

@@ -22,8 +22,8 @@ def loadData(filename):
 
 def choose_hyparmeter(x_train,train_label,x_test,test_label,path,num_order,num_factors):
     
-    reg_1_set = [0.00001,0.00001,0.0001]
-    reg_2_set = [0.00001,0.00001,0.0001]
+    reg_1_set = [0.0000001,0.000001,0.00001]
+    reg_2_set = [0.0000001,0.000001,0.00001]
 
     for reg_1 in reg_1_set:
         for reg_2 in reg_2_set:

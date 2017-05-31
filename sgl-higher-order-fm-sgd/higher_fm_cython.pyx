@@ -167,7 +167,7 @@ cdef class FM:
                     DPT[t,lastnnz+1:feature] = DPT[t,lastnnz]
                     DPT[t,feature] = DPT[t,feature-1] + v_p[feature,i]*x_data_ptr[k]*DPT[t-1,feature-1]
                     lastnnz = feature
-                DPT[t,lastnnz+1:self.num_attributes] = DPT[t,lastnnz]
+                DPT[t,lastnnz+1:self.num_attributes+1] = DPT[t,lastnnz]
             self.DP_table_sec[i,:,:] = DPT
             result += DPT[2,self.num_attributes]
         #third order
@@ -181,7 +181,7 @@ cdef class FM:
                         DPT[t,lastnnz+1:feature] = DPT[t,lastnnz]
                         DPT[t,feature] = DPT[t,feature-1] + v_q[feature,i]*x_data_ptr[k]*DPT[t-1,feature-1]
                         lastnnz = feature
-                    DPT[t,lastnnz+1:self.num_attributes] = DPT[t,lastnnz]
+                    DPT[t,lastnnz+1:self.num_attributes+1] = DPT[t,lastnnz]
                 self.DP_table_thi[i,:,:] = DPT
                 result += DPT[3,self.num_attributes]
 
@@ -382,7 +382,7 @@ cdef class FM:
                     hat_v = self.prev_grad_v_q[feature,i]/(1-beta2)
                     v_q[feature,i] -= (eta/(np.sqrt(hat_v)+1e-8))*hat_m   
         
-        # L1 regularization
+        #L1 regularization
         self.total_l1 += self.learning_rate*self.reg_1
         
         for i in range(xnnz):
